@@ -948,7 +948,7 @@
           <li><b>TLS in transit</b>, KMS encryption at rest, private VPC subnets — on by default or one setting away.</li>
           <li><b>CloudWatch + Prometheus</b> metrics; consumer lag is the metric to alarm on.</li>
         </ul></div>
-        <div class="callout note r r6" style="margin-top:12px"><span class="ic">◆</span><div>Today's labs run on <b>MSK Serverless with IAM auth</b> — fewest moving parts. Every command works unchanged against provisioned MSK, Confluent or self-managed Kafka; only the client config block differs.</div></div>
+        <div class="callout note r r6" style="margin-top:12px"><span class="ic">◆</span><div>Today's labs run on <b>MSK Provisioned with Express brokers and IAM auth</b> — that's why topic creation needs an explicit <code>--replication-factor</code> (unlike Serverless, which sets it for you). Every command works unchanged against Serverless, Confluent or self-managed Kafka; only the client config block differs.</div></div>
       </div>
     </div>
   </section>
@@ -959,7 +959,7 @@
     <h2 class="ch-title r r2">Lab 1 — your first<br>event <span class="k-cyan">stream</span>.</h2>
     <p class="ch-q r r3">The goal: by the end of this lab you will have <b>produced keyed records, consumed them, and read your own offsets</b> — and you'll have seen with your own eyes that consuming didn't delete anything.</p>
     <div class="ch-list">
-      <div class="ch-item r r4"><b>1 · Connect</b>Bootstrap brokers, IAM client config, verify.</div>
+      <div class="ch-item r r4"><b>1 · Connect</b>Clone the repo, <code>source bootstrap.sh</code>, verify with <code>check-setup.sh</code>.</div>
       <div class="ch-item r r4"><b>2 · Create a topic</b>Three partitions, named <code>orders</code>.</div>
       <div class="ch-item r r5"><b>3 · Produce</b>Keyed records from the console producer.</div>
       <div class="ch-item r r5"><b>4 · Consume</b>Watch key, partition and offset.</div>
@@ -972,34 +972,25 @@
   <section class="slide dense" id="s4a" data-ch="4">
     <div class="labtag r r1"><span class="d"></span>Lab 1 · Step 0 — connect</div>
     <h2 class="r r2">Get a terminal talking<br>to the cluster.</h2>
-    <p class="lede r r3">Five minutes. If you're blocked after five, raise a hand and pair with a neighbour — do not spend the lab debugging a client.</p>
+    <p class="lede r r3">Five minutes. You should have already cloned the repo in pre-work — if not, do it now. If you're blocked after five minutes, raise a hand and pair with a neighbour.</p>
     <div class="body-wrap grid-2">
       <div>
-        <div class="sub">Environment</div>
-        <div class="card cy r r4"><ul>
-          <li>Kafka CLI tools unpacked (<code>bin/kafka-topics.sh</code> and friends) on an EC2/Cloud9 host in the cluster's VPC.</li>
-          <li>The <b>MSK IAM auth</b> JAR on the classpath (<code>aws-msk-iam-auth-*-all.jar</code> in <code>libs/</code>).</li>
-          <li>An instance role or credentials with MSK data-plane permissions.</li>
-          <li>Java 17+ available on the path.</li>
-        </ul></div>
-        <div class="code-cap" style="margin-top:14px">Get the bootstrap string</div>
-        <pre class="code r r5"><span class="f">aws</span> kafka get-bootstrap-brokers \
-  --cluster-arn <span class="v">$CLUSTER_ARN</span> \
-  --query <span class="s">BootstrapBrokerStringSaslIam</span> --output text
-
-<span class="k">export</span> BS=<span class="s">"b-1...:9098,b-2...:9098"</span></pre>
+        <div class="code-cap">If you haven't already (pre-work)</div>
+        <pre class="code r r4"><span class="k">sudo</span> su - ec2-user
+<span class="f">git</span> clone <span class="s">https://github.com/jantcart-sketch/aws-kafka-workshop.git</span>
+<span class="k">cd</span> aws-kafka-workshop/scripts</pre>
+        <div class="callout warn r r5" style="margin-top:12px"><span class="ic">✕</span><div><b>Open two SSM tabs now</b> against your <code>KafkaClientInstance</code> — one to produce, one to consume. Each tab is a <b>fully independent session</b>: every new tab needs <code>sudo su - ec2-user</code> and the bootstrap step below repeated. <code>Ctrl+C</code> does not reset this — opening a new tab does.</div></div>
       </div>
       <div>
-        <div class="code-cap">client.properties — IAM auth</div>
-        <pre class="code r r5"><span class="k">security.protocol</span>=<span class="v">SASL_SSL</span>
-<span class="k">sasl.mechanism</span>=<span class="v">AWS_MSK_IAM</span>
-<span class="k">sasl.jaas.config</span>=<span class="v">software.amazon.msk.auth.iam.IAMLoginModule required;</span>
-<span class="k">sasl.client.callback.handler.class</span>=<span class="v">software.amazon.msk.auth.iam.IAMClientCallbackHandler</span></pre>
-        <div class="code-cap" style="margin-top:14px">Verify — this should return without error</div>
-        <pre class="code r r6">bin/kafka-topics.sh --bootstrap-server <span class="v">$BS</span> \
-  --command-config client.properties --list</pre>
-        <div class="callout note r r6" style="margin-top:12px"><span class="ic">◆</span><div><b>Not on MSK?</b> Everything after this slide is identical — drop <code>--command-config</code> for a local/plaintext cluster, or point it at your own SASL/mTLS properties file.</div></div>
-        <div class="callout warn r r6" style="margin-top:10px"><span class="ic">✕</span><div><b>Timeout on connect</b> is almost always network, not auth: wrong VPC/subnet, security group not allowing <b>9098</b> from your host, or the wrong bootstrap port.</div></div>
+        <div class="code-cap">In <b>every</b> tab — discover the cluster &amp; generate client config</div>
+        <pre class="code r r5"><span class="f">source</span> bootstrap.sh
+<span class="c"># discovers your account's MSK cluster, resolves the</span>
+<span class="c"># IAM bootstrap string into $BS, and writes</span>
+<span class="c"># client-iam.properties for the Kafka CLI</span></pre>
+        <div class="code-cap" style="margin-top:14px">Verify — run this if anything above looked off</div>
+        <pre class="code r r6">./check-setup.sh
+<span class="c"># ✅/❌ checklist: Java, IAM auth JAR, $BS, connection, permissions</span></pre>
+        <div class="callout note r r6" style="margin-top:10px"><span class="ic">◆</span><div><b>Timeout on connect</b> is almost always network, not auth: wrong VPC/subnet, security group not allowing <b>9098</b> from your host, or <code>$BS</code> empty because this tab never ran <code>source bootstrap.sh</code>.</div></div>
       </div>
     </div>
   </section>
@@ -5435,7 +5426,7 @@ const NOTES={
     "Highlight the top three by frequency: consumer lag climbing (usually a slow dependency or a rebalance loop, <b>not</b> Kafka), producer timeouts (check ISR before touching client config), and disk full (someone set infinite retention).",
     "Repeat the retention gotcha: shortening retention takes effect on <b>segment roll</b>, so it is not instant relief for a full disk. Callback to 09.4.",
     "'Connected then hung' → advertised.listeners, every time. Callback to 09.5.",
-    "'Duplicate processing after a rebalance' is <b>working as designed</b> under at-least-once. The fix is idempotent handlers, not a Kafka setting. Sets up chapter 08.",
+    "'Duplicate processing after a rebalance' is <b>working as designed</b> under at-least-once. The fix is idempotent handlers, not a Kafka setting. Sets up chapter 15 (delivery semantics).",
     "The pattern to name: <b>most Kafka incidents are consumer or capacity incidents.</b> Instrument clients as carefully as the cluster — most teams do the opposite."]},
 
   ch15:{title:"Chapter 15 — Guarantees",sub:"~20 min · mostly discussion",points:[
