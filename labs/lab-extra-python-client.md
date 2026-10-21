@@ -73,7 +73,7 @@ Additional dependency on top of what you already have:
 pip3 install --user fastavro
 ```
 
-Create the destination topic, if it doesn't exist yet (it was never pre-created alongside `orders`/`customers`):
+`orders-avro` is created automatically by `source bootstrap.sh` (see Lab 1's prework), so this step is usually a no-op. Left here in case you ever need to (re)create it by hand:
 ```bash
 $KAFKA/bin/kafka-topics.sh --bootstrap-server $BS --command-config $PROPS \
   --create --if-not-exists --topic orders-avro --partitions 1 --replication-factor 2

@@ -10,11 +10,13 @@ By the end of this lab you will have done, with your own hands, the four basic K
 
 ## Your topics
 
-Already created in your account before the workshop:
+`source bootstrap.sh` creates these three automatically (idempotently) every time you run it, so they exist by the time you get here regardless of whether your account pre-created them:
 
 - `orders` — 3 partitions
 - `customers` — 1 partition, compacted (you'll use this in Lab 2)
 - `orders-avro` — 1 partition (Lab 2)
+
+> Note on replication factor: every `--create` in this repo passes `--replication-factor 2`, but on this cluster's **Express brokers** MSK ignores that and always creates topics with `ReplicationFactor: 3` (and `min.insync.replicas=2`) — that's documented AWS behavior for Express, not a bug in the command. Don't be surprised if `--describe` shows RF 3 instead of 2.
 
 ## Step 0 — Verify you're connected
 

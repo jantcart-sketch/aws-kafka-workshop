@@ -960,7 +960,7 @@
     <p class="ch-q r r3">The goal: by the end of this lab you will have <b>produced keyed records, consumed them, and read your own offsets</b> — and you'll have seen with your own eyes that consuming didn't delete anything.</p>
     <div class="ch-list">
       <div class="ch-item r r4"><b>1 · Connect</b>Clone the repo, <code>source bootstrap.sh</code>, verify with <code>check-setup.sh</code>.</div>
-      <div class="ch-item r r4"><b>2 · Create a topic</b>Three partitions, named <code>orders</code>.</div>
+      <div class="ch-item r r4"><b>2 · Describe a topic</b><code>orders</code> — 3 partitions, created for you by <code>bootstrap.sh</code>.</div>
       <div class="ch-item r r5"><b>3 · Produce</b>Keyed records from the console producer.</div>
       <div class="ch-item r r5"><b>4 · Consume</b>Watch key, partition and offset.</div>
       <div class="ch-item r r6"><b>5 · Inspect</b>Describe the group; read the lag.</div>
@@ -985,8 +985,9 @@
         <div class="code-cap">In <b>every</b> tab — discover the cluster &amp; generate client config</div>
         <pre class="code r r5"><span class="f">source</span> bootstrap.sh
 <span class="c"># discovers your account's MSK cluster, resolves the</span>
-<span class="c"># IAM bootstrap string into $BS, and writes</span>
-<span class="c"># client-iam.properties for the Kafka CLI</span></pre>
+<span class="c"># IAM bootstrap string into $BS, writes</span>
+<span class="c"># client-iam.properties, AND creates orders/</span>
+<span class="c"># customers/orders-avro if they don't exist yet</span></pre>
         <div class="code-cap" style="margin-top:14px">Verify — run this if anything above looked off</div>
         <pre class="code r r6">./check-setup.sh
 <span class="c"># ✅/❌ checklist: Java, IAM auth JAR, $BS, connection, permissions</span></pre>

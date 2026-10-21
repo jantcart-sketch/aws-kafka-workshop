@@ -106,5 +106,29 @@ sasl.client.callback.handler.class=software.amazon.msk.auth.iam.IAMClientCallbac
 EOF
 echo "    OK: $CLIENT_PROPERTIES"
 
+# Ensure the lab topics exist. They're meant to be pre-created before the
+# workshop, but that step can be skipped or fail silently per-account — so
+# bootstrap.sh creates them here too, idempotently (--if-not-exists), as a
+# safety net every time an attendee connects. NOTE: on Express brokers,
+# MSK ignores whatever --replication-factor you pass and always creates
+# the topic with RF=3 (and min.insync.replicas=2) — see AWS's own docs,
+# "Five operational differences to check before adopting MSK Express
+# brokers". We pass 2 below only to match what the labs/docs show; the
+# actual topic will come back as RF=3 either way, which is expected.
+echo "==> Ensuring lab topics exist (orders, customers, orders-avro)..."
+TOPICS_SH="$KAFKA_HOME/bin/kafka-topics.sh"
+if [[ -x "$TOPICS_SH" ]]; then
+  "$TOPICS_SH" --bootstrap-server "$BS" --command-config "$CLIENT_PROPERTIES" \
+    --create --if-not-exists --topic orders --partitions 3 --replication-factor 2 >/dev/null 2>&1
+  "$TOPICS_SH" --bootstrap-server "$BS" --command-config "$CLIENT_PROPERTIES" \
+    --create --if-not-exists --topic customers --partitions 1 --replication-factor 2 \
+    --config cleanup.policy=compact >/dev/null 2>&1
+  "$TOPICS_SH" --bootstrap-server "$BS" --command-config "$CLIENT_PROPERTIES" \
+    --create --if-not-exists --topic orders-avro --partitions 1 --replication-factor 2 >/dev/null 2>&1
+  echo "    OK: orders, customers, orders-avro present (created if missing)"
+else
+  echo "    WARNING: $TOPICS_SH not found/executable, skipped topic creation" >&2
+fi
+
 echo "==> Done. Test with:"
 echo "    $KAFKA_HOME/bin/kafka-topics.sh --bootstrap-server \$BS --command-config $CLIENT_PROPERTIES --list"

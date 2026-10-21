@@ -1,4 +1,4 @@
 confluent-kafka==2.6.1
 aws-msk-iam-sasl-signer-python==1.0.2
 boto3>=1.26.125
-fastavro==1.13.1
+fastavro==1.12.2

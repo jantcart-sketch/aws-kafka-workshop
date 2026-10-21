@@ -22,14 +22,14 @@ Complete this before the workshop so connecting doesn't eat into lab time.
    source bootstrap.sh
    /home/ec2-user/kafka/bin/kafka-topics.sh --bootstrap-server $BS --command-config /home/ec2-user/kafka/config/client-iam.properties --list
    ```
-   - *Check:* the command returns a list of topics (internal `__...` topics at minimum) without an authentication or timeout error.
+   - *Check:* the command returns a list of topics without an authentication or timeout error, and it includes `orders`, `customers`, and `orders-avro`. `bootstrap.sh` creates these three automatically (idempotently, `--if-not-exists`) every time it runs — they don't rely on being pre-created in your account, so even a brand-new/reset account gets them back on the next `source bootstrap.sh`.
 
 5. **Confirm your topics exist**:
    ```bash
    /home/ec2-user/kafka/bin/kafka-topics.sh --bootstrap-server $BS --command-config /home/ec2-user/kafka/config/client-iam.properties \
      --describe --topic orders
    ```
-   - *Check:* the command shows the `orders` topic with 3 partitions.
+   - *Check:* the command shows the `orders` topic with 3 partitions. Note: on this cluster's Express brokers, MSK always enforces `ReplicationFactor: 3` regardless of what `--replication-factor` you pass when creating a topic — that's expected AWS behavior for Express, not a mistake in the command.
 
 6. **If anything fails**, note the exact error message and who to contact (channel/contact to be filled in by the event organizer).
 

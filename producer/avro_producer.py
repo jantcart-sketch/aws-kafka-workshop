@@ -190,9 +190,15 @@ def main() -> None:
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
 
-    # Uses the v2 schema (with 'channel') by default — see schemas/order-v2.avsc.
-    # Change the path here if you want to explicitly test v1.
-    schema_path = os.environ.get("AVRO_SCHEMA_PATH", "schemas/order-v2.avsc")
+    # Uses the v2 schema (with 'channel') by default — see ../schemas/order-v2.avsc.
+    # Change the path here if you want to explicitly test v1. Path is
+    # relative to this script's own directory (producer/), not to the
+    # current working directory, so it works whether you run this from
+    # producer/ (as the lab instructs) or from anywhere else.
+    _default_schema_path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "..", "schemas", "order-v2.avsc"
+    )
+    schema_path = os.environ.get("AVRO_SCHEMA_PATH", _default_schema_path)
     avro_schema, raw_schema_text = load_avro_schema(schema_path)
 
     glue = GlueSchemaClient(settings.region, settings.registry_name, settings.schema_name)

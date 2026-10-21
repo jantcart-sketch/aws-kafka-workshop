@@ -1,6 +1,6 @@
 # Lab 2 — Replay, groups, compaction, and schema evolution
 
-> Estimated time: 35 min. Requires having completed Lab 1 (your `orders` topic should already have a few messages).
+> Estimated time: 35 min. Requires having completed Lab 1 (your `orders` topic should already have a few messages). `customers` and `orders-avro` are created automatically by `source bootstrap.sh` (see Lab 1), so you don't need to create them yourself — the `--create --if-not-exists` command below is left in case you ever need to run it by hand.
 
 ## Goal
 

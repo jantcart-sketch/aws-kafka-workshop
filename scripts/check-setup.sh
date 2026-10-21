@@ -6,7 +6,8 @@
 #   2. aws-msk-iam-auth-*.jar present in the classpath/libs.
 #   3. $BS defined and client.properties present.
 #   4. Connection to the cluster (kafka-topics --list responds).
-#   5. Permissions: create and delete a test topic.
+#   5. The lab topics (orders, customers, orders-avro) exist.
+#   6. Permissions: create and delete a test topic.
 #
 # Usage:
 #   ./check-setup.sh [--kafka-home /home/ec2-user/kafka] [--client-properties path]
@@ -92,7 +93,25 @@ else
   fail "Skipping connection test (prerequisites not met)"
 fi
 
-# 5. Permissions: create and delete a test topic
+# 5. The lab topics actually exist (orders/customers/orders-avro are
+# supposed to be pre-created, but bootstrap.sh also creates them
+# idempotently as a safety net — this check just confirms they're there
+# before the attendee hits a "Topic does not exist" error mid-lab).
+if [[ -n "${BS:-}" && -f "$CLIENT_PROPERTIES" && -x "$KAFKA_HOME/bin/kafka-topics.sh" ]]; then
+  EXISTING="$("$KAFKA_HOME/bin/kafka-topics.sh" --bootstrap-server "$BS" \
+      --command-config "$CLIENT_PROPERTIES" --list 2>/dev/null)"
+  for t in orders customers orders-avro; do
+    if echo "$EXISTING" | grep -qx "$t"; then
+      ok "Topic '$t' exists"
+    else
+      fail "Topic '$t' is missing — run: source bootstrap.sh (it creates missing lab topics too)"
+    fi
+  done
+else
+  fail "Skipping lab-topics check (prerequisites not met)"
+fi
+
+# 6. Permissions: create and delete a test topic
 if [[ -n "${BS:-}" && -f "$CLIENT_PROPERTIES" && -x "$KAFKA_HOME/bin/kafka-topics.sh" ]]; then
   if "$KAFKA_HOME/bin/kafka-topics.sh" --bootstrap-server "$BS" \
       --command-config "$CLIENT_PROPERTIES" \
