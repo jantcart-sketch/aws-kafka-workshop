@@ -346,6 +346,11 @@
   .notes-toggle:hover{color:var(--cyan);border-color:var(--cyan)}
   body.notes-on .hint{display:none}
 
+  /* Public/attendee build: hide presenter notes and the workshop timer.
+     This deck is handed to attendees — they shouldn't see speaker notes
+     or a live countdown meant for whoever is presenting. */
+  .notes,.notes-toggle,.clock{display:none!important}
+
   /* agenda overlay */
   .agenda{position:fixed;inset:0;z-index:45;background:rgba(4,7,12,.94);backdrop-filter:blur(12px);
     display:none;flex-direction:column;justify-content:center;padding:6vh clamp(28px,7vw,120px)}
@@ -400,7 +405,7 @@
         <div class="pill"><b>06</b> Use case discovery</div>
         <div class="pill"><b>07</b> Wrap-up</div>
       </div>
-      <p class="lede r r5" style="margin-top:30px">For architects, developers, integration and platform engineers who already live with queues and topics. Three hours, half of it hands-on. Press <b>N</b> for speaker notes, <b>A</b> for the agenda, <b>1–9</b> to jump to a chapter (chapters 10+: use the agenda or the side rail), <b>T</b> to start the clock.</p>
+      <p class="lede r r5" style="margin-top:30px">For architects, developers, integration and platform engineers who already live with queues and topics. Three hours, half of it hands-on. Press <b>A</b> for the agenda, <b>1–9</b> to jump to a chapter (chapters 10+: use the agenda or the side rail).</p>
     </div>
   </section>
   <!-- ============ CHAPTER 01 ============ -->
@@ -3140,7 +3145,7 @@ orders  2          904488   904533    <span class="v">45</span></pre>
 </div>
 
 <button class="notes-toggle" id="notesToggle">Notes · N</button>
-<div class="hint">Navigate <kbd>←</kbd> <kbd>→</kbd> · <kbd>Space</kbd> · <kbd>N</kbd> notes · <kbd>A</kbd> agenda · <kbd>T</kbd> timer</div>
+<div class="hint">Navigate <kbd>←</kbd> <kbd>→</kbd> · <kbd>Space</kbd> · <kbd>A</kbd> agenda</div>
 
 <aside class="notes" id="notesPanel">
   <div class="nhead"><span id="notesCh">—</span><span id="notesPos">—</span></div>
