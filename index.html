@@ -1014,29 +1014,28 @@
       &lt;div&gt;
         &lt;div class=&quot;sub&quot;&gt;Environment&lt;/div&gt;
         &lt;div class=&quot;card cy r r4&quot;&gt;&lt;ul&gt;
-          &lt;li&gt;Kafka CLI tools unpacked (&lt;code&gt;bin/kafka-topics.sh&lt;/code&gt; and friends) on an EC2/Cloud9 host in the cluster's VPC.&lt;/li&gt;
-          &lt;li&gt;The &lt;b&gt;MSK IAM auth&lt;/b&gt; JAR on the classpath (&lt;code&gt;aws-msk-iam-auth-*-all.jar&lt;/code&gt; in &lt;code&gt;libs/&lt;/code&gt;).&lt;/li&gt;
-          &lt;li&gt;An instance role or credentials with MSK data-plane permissions.&lt;/li&gt;
-          &lt;li&gt;Java 17+ available on the path.&lt;/li&gt;
+          &lt;li&gt;Your own AWS account for the event (Workshop Studio) — already has an MSK cluster and a &lt;code&gt;KafkaClientInstance&lt;/code&gt; host provisioned.&lt;/li&gt;
+          &lt;li&gt;Connect to the host via &lt;b&gt;SSM Session Manager&lt;/b&gt; — no SSH key, no public IP.&lt;/li&gt;
+          &lt;li&gt;Clone the workshop repo on the host, then run the setup script.&lt;/li&gt;
+          &lt;li&gt;Java 11+ and the Kafka CLI are already installed on the host.&lt;/li&gt;
         &lt;/ul&gt;&lt;/div&gt;
-        &lt;div class=&quot;code-cap&quot; style=&quot;margin-top:14px&quot;&gt;Get the bootstrap string&lt;/div&gt;
-        &lt;pre class=&quot;code r r5&quot;&gt;&lt;span class=&quot;f&quot;&gt;aws&lt;/span&gt; kafka get-bootstrap-brokers \
-  --cluster-arn &lt;span class=&quot;v&quot;&gt;$CLUSTER_ARN&lt;/span&gt; \
-  --query &lt;span class=&quot;s&quot;&gt;BootstrapBrokerStringSaslIam&lt;/span&gt; --output text
-
-&lt;span class=&quot;k&quot;&gt;export&lt;/span&gt; BS=&lt;span class=&quot;s&quot;&gt;&quot;b-1...:9098,b-2...:9098&quot;&lt;/span&gt;&lt;/pre&gt;
+        &lt;div class=&quot;code-cap&quot; style=&quot;margin-top:14px&quot;&gt;Clone the repo and run the setup script&lt;/div&gt;
+        &lt;pre class=&quot;code r r5&quot;&gt;sudo su - ec2-user
+git clone https://github.com/jantcart-sketch/aws-kafka-workshop.git
+cd aws-kafka-workshop/scripts
+&lt;span class=&quot;k&quot;&gt;source&lt;/span&gt; bootstrap.sh&lt;/pre&gt;
       &lt;/div&gt;
       &lt;div&gt;
-        &lt;div class=&quot;code-cap&quot;&gt;client.properties — IAM auth&lt;/div&gt;
-        &lt;pre class=&quot;code r r5&quot;&gt;&lt;span class=&quot;k&quot;&gt;security.protocol&lt;/span&gt;=&lt;span class=&quot;v&quot;&gt;SASL_SSL&lt;/span&gt;
-&lt;span class=&quot;k&quot;&gt;sasl.mechanism&lt;/span&gt;=&lt;span class=&quot;v&quot;&gt;AWS_MSK_IAM&lt;/span&gt;
-&lt;span class=&quot;k&quot;&gt;sasl.jaas.config&lt;/span&gt;=&lt;span class=&quot;v&quot;&gt;software.amazon.msk.auth.iam.IAMLoginModule required;&lt;/span&gt;
-&lt;span class=&quot;k&quot;&gt;sasl.client.callback.handler.class&lt;/span&gt;=&lt;span class=&quot;v&quot;&gt;software.amazon.msk.auth.iam.IAMClientCallbackHandler&lt;/span&gt;&lt;/pre&gt;
+        &lt;div class=&quot;code-cap&quot;&gt;What bootstrap.sh does for you&lt;/div&gt;
+        &lt;pre class=&quot;code r r5&quot;&gt;&lt;span class=&quot;c&quot;&gt;# finds your account's MSK cluster by name&lt;/span&gt;
+&lt;span class=&quot;c&quot;&gt;# resolves its IAM bootstrap brokers string&lt;/span&gt;
+&lt;span class=&quot;c&quot;&gt;# exports $BS and generates client-iam.properties&lt;/span&gt;
+&lt;span class=&quot;c&quot;&gt;# with AWS_MSK_IAM auth already configured&lt;/span&gt;&lt;/pre&gt;
         &lt;div class=&quot;code-cap&quot; style=&quot;margin-top:14px&quot;&gt;Verify — this should return without error&lt;/div&gt;
-        &lt;pre class=&quot;code r r6&quot;&gt;bin/kafka-topics.sh --bootstrap-server &lt;span class=&quot;v&quot;&gt;$BS&lt;/span&gt; \
-  --command-config client.properties --list&lt;/pre&gt;
-        &lt;div class=&quot;callout note r r6&quot; style=&quot;margin-top:12px&quot;&gt;&lt;span class=&quot;ic&quot;&gt;◆&lt;/span&gt;&lt;div&gt;&lt;b&gt;Not on MSK?&lt;/b&gt; Everything after this slide is identical — drop &lt;code&gt;--command-config&lt;/code&gt; for a local/plaintext cluster, or point it at your own SASL/mTLS properties file.&lt;/div&gt;&lt;/div&gt;
-        &lt;div class=&quot;callout warn r r6&quot; style=&quot;margin-top:10px&quot;&gt;&lt;span class=&quot;ic&quot;&gt;✕&lt;/span&gt;&lt;div&gt;&lt;b&gt;Timeout on connect&lt;/b&gt; is almost always network, not auth: wrong VPC/subnet, security group not allowing &lt;b&gt;9098&lt;/b&gt; from your host, or the wrong bootstrap port.&lt;/div&gt;&lt;/div&gt;
+        &lt;pre class=&quot;code r r6&quot;&gt;/home/ec2-user/kafka/bin/kafka-topics.sh --bootstrap-server &lt;span class=&quot;v&quot;&gt;$BS&lt;/span&gt; \
+  --command-config /home/ec2-user/kafka/config/client-iam.properties --list&lt;/pre&gt;
+        &lt;div class=&quot;callout warn r r6&quot; style=&quot;margin-top:12px&quot;&gt;&lt;span class=&quot;ic&quot;&gt;✕&lt;/span&gt;&lt;div&gt;&lt;b&gt;You'll need two tabs/SSM sessions&lt;/b&gt; (one to produce, one to consume). Each tab is independent — in every new tab, run &lt;code&gt;sudo su - ec2-user&lt;/code&gt; then &lt;code&gt;source bootstrap.sh&lt;/code&gt; again before anything else, even if you already did it in another tab.&lt;/div&gt;&lt;/div&gt;
+        &lt;div class=&quot;callout warn r r6&quot; style=&quot;margin-top:10px&quot;&gt;&lt;span class=&quot;ic&quot;&gt;✕&lt;/span&gt;&lt;div&gt;&lt;b&gt;&lt;code&gt;Invalid url in bootstrap.servers&lt;/code&gt;&lt;/b&gt; almost always means &lt;code&gt;$BS&lt;/code&gt; is empty in this tab — you're in a new session that hasn't run &lt;code&gt;source bootstrap.sh&lt;/code&gt; yet.&lt;/div&gt;&lt;/div&gt;
       &lt;/div&gt;
     &lt;/div&gt;
   &lt;/section&gt;
@@ -1049,12 +1048,12 @@
       &lt;div&gt;
         &lt;div class=&quot;sub&quot;&gt;Run these in order — two terminals&lt;/div&gt;
         &lt;ol class=&quot;labsteps r r3&quot;&gt;
-          &lt;li&gt;&lt;b&gt;Create the topic.&lt;/b&gt; Three partitions so you can see keys spread.
+          &lt;li&gt;&lt;b&gt;Create the topic.&lt;/b&gt; Three partitions so you can see keys spread. (Already pre-created for you — this is here so you know the command.)
             &lt;pre class=&quot;code&quot; style=&quot;margin-top:7px&quot;&gt;bin/kafka-topics.sh --bootstrap-server &lt;span class=&quot;v&quot;&gt;$BS&lt;/span&gt; \
   --command-config client.properties \
-  --create --topic &lt;span class=&quot;s&quot;&gt;orders&lt;/span&gt; --partitions &lt;span class=&quot;v&quot;&gt;3&lt;/span&gt;
-&lt;span class=&quot;c&quot;&gt;# provisioned MSK / self-managed: add --replication-factor 3&lt;/span&gt;
-&lt;span class=&quot;c&quot;&gt;# MSK Serverless manages replication for you — omit it&lt;/span&gt;&lt;/pre&gt;&lt;/li&gt;
+  --create --topic &lt;span class=&quot;s&quot;&gt;orders&lt;/span&gt; --partitions &lt;span class=&quot;v&quot;&gt;3&lt;/span&gt; --replication-factor &lt;span class=&quot;v&quot;&gt;2&lt;/span&gt;
+&lt;span class=&quot;c&quot;&gt;# this cluster is MSK Provisioned (Express brokers) — --replication-factor&lt;/span&gt;
+&lt;span class=&quot;c&quot;&gt;# is REQUIRED here, unlike MSK Serverless which manages it for you&lt;/span&gt;&lt;/pre&gt;&lt;/li&gt;
           &lt;li&gt;&lt;b&gt;Describe it.&lt;/b&gt; Note the leader and the replica/ISR list per partition.
             &lt;pre class=&quot;code&quot; style=&quot;margin-top:7px&quot;&gt;bin/kafka-topics.sh --bootstrap-server &lt;span class=&quot;v&quot;&gt;$BS&lt;/span&gt; \
   --command-config client.properties --describe --topic &lt;span class=&quot;s&quot;&gt;orders&lt;/span&gt;&lt;/pre&gt;&lt;/li&gt;
@@ -1063,19 +1062,19 @@
   --producer.config client.properties --topic &lt;span class=&quot;s&quot;&gt;orders&lt;/span&gt; \
   --property &lt;span class=&quot;k&quot;&gt;parse.key&lt;/span&gt;=&lt;span class=&quot;v&quot;&gt;true&lt;/span&gt; --property &lt;span class=&quot;k&quot;&gt;key.separator&lt;/span&gt;=&lt;span class=&quot;v&quot;&gt;:&lt;/span&gt;
 
-&lt;span class=&quot;s&quot;&gt;cust-1:{&quot;orderId&quot;:&quot;A1&quot;,&quot;amount&quot;:42.00}&lt;/span&gt;
-&lt;span class=&quot;s&quot;&gt;cust-2:{&quot;orderId&quot;:&quot;A2&quot;,&quot;amount&quot;:17.50}&lt;/span&gt;
-&lt;span class=&quot;s&quot;&gt;cust-1:{&quot;orderId&quot;:&quot;A3&quot;,&quot;amount&quot;:99.95}&lt;/span&gt;&lt;/pre&gt;&lt;/li&gt;
+&lt;span class=&quot;s&quot;&gt;cust-001:{&quot;orderId&quot;:&quot;o1&quot;,&quot;amount&quot;:42.00}&lt;/span&gt;
+&lt;span class=&quot;s&quot;&gt;cust-002:{&quot;orderId&quot;:&quot;o2&quot;,&quot;amount&quot;:17.50}&lt;/span&gt;
+&lt;span class=&quot;s&quot;&gt;cust-001:{&quot;orderId&quot;:&quot;o3&quot;,&quot;amount&quot;:99.95}&lt;/span&gt;&lt;/pre&gt;&lt;/li&gt;
           &lt;li&gt;&lt;b&gt;Consume from the beginning&lt;/b&gt; in terminal 2, printing metadata.
             &lt;pre class=&quot;code&quot; style=&quot;margin-top:7px&quot;&gt;bin/kafka-console-consumer.sh --bootstrap-server &lt;span class=&quot;v&quot;&gt;$BS&lt;/span&gt; \
   --consumer.config client.properties --topic &lt;span class=&quot;s&quot;&gt;orders&lt;/span&gt; \
-  --group &lt;span class=&quot;s&quot;&gt;lab-consumer&lt;/span&gt; --from-beginning \
+  --group &lt;span class=&quot;s&quot;&gt;lab1&lt;/span&gt; --from-beginning \
   --property &lt;span class=&quot;k&quot;&gt;print.key&lt;/span&gt;=&lt;span class=&quot;v&quot;&gt;true&lt;/span&gt; --property &lt;span class=&quot;k&quot;&gt;print.partition&lt;/span&gt;=&lt;span class=&quot;v&quot;&gt;true&lt;/span&gt; \
   --property &lt;span class=&quot;k&quot;&gt;print.offset&lt;/span&gt;=&lt;span class=&quot;v&quot;&gt;true&lt;/span&gt;&lt;/pre&gt;&lt;/li&gt;
           &lt;li&gt;&lt;b&gt;Stop the consumer (Ctrl-C) and inspect the group.&lt;/b&gt; This is the payoff.
             &lt;pre class=&quot;code&quot; style=&quot;margin-top:7px&quot;&gt;bin/kafka-consumer-groups.sh --bootstrap-server &lt;span class=&quot;v&quot;&gt;$BS&lt;/span&gt; \
   --command-config client.properties \
-  --describe --group &lt;span class=&quot;s&quot;&gt;lab-consumer&lt;/span&gt;&lt;/pre&gt;&lt;/li&gt;
+  --describe --group &lt;span class=&quot;s&quot;&gt;lab1&lt;/span&gt;&lt;/pre&gt;&lt;/li&gt;
         &lt;/ol&gt;
       &lt;/div&gt;
       &lt;div&gt;
@@ -1085,7 +1084,7 @@
         &lt;/div&gt;
         &lt;div class=&quot;sub am&quot; style=&quot;margin-top:16px&quot;&gt;Checkpoints — tick these off&lt;/div&gt;
         &lt;ul class=&quot;check r r5&quot;&gt;
-          &lt;li&gt;&lt;b&gt;Same key, same partition.&lt;/b&gt; Both &lt;code&gt;cust-1&lt;/code&gt; records landed in one partition, in order.&lt;/li&gt;
+          &lt;li&gt;&lt;b&gt;Same key, same partition.&lt;/b&gt; Both &lt;code&gt;cust-001&lt;/code&gt; records landed in one partition, in order.&lt;/li&gt;
           &lt;li&gt;&lt;b&gt;Offsets are per partition.&lt;/b&gt; They start at 0 in each, and they're dense and monotonic.&lt;/li&gt;
           &lt;li&gt;&lt;b&gt;CURRENT-OFFSET, LOG-END-OFFSET, LAG&lt;/b&gt; appear in the group description. Lag should be 0.&lt;/li&gt;
           &lt;li&gt;&lt;b&gt;Restart the consumer without &lt;code&gt;--from-beginning&lt;/code&gt;&lt;/b&gt; → nothing arrives. It resumed from its committed offset.&lt;/li&gt;
@@ -1120,11 +1119,10 @@
     &lt;div class=&quot;ch-list&quot;&gt;
       &lt;div class=&quot;ch-item r r4&quot;&gt;&lt;b&gt;1 · Two groups, one topic&lt;/b&gt;Independent positions, no coordination.&lt;/div&gt;
       &lt;div class=&quot;ch-item r r4&quot;&gt;&lt;b&gt;2 · Replay&lt;/b&gt;Reset offsets to earliest, and to a timestamp.&lt;/div&gt;
-      &lt;div class=&quot;ch-item r r5&quot;&gt;&lt;b&gt;3 · Scale &amp;amp; rebalance&lt;/b&gt;Add consumers; find the partition ceiling.&lt;/div&gt;
-      &lt;div class=&quot;ch-item r r5&quot;&gt;&lt;b&gt;4 · Compaction&lt;/b&gt;Build a topic that behaves like a table.&lt;/div&gt;
-      &lt;div class=&quot;ch-item r r6&quot;&gt;&lt;b&gt;5 · Evolution&lt;/b&gt;Add a field without breaking a consumer.&lt;/div&gt;
+      &lt;div class=&quot;ch-item r r5&quot;&gt;&lt;b&gt;3 · Compaction&lt;/b&gt;Build a topic that behaves like a table.&lt;/div&gt;
+      &lt;div class=&quot;ch-item r r6&quot;&gt;&lt;b&gt;4 · Evolution&lt;/b&gt;Add a field without breaking a consumer.&lt;/div&gt;
     &lt;/div&gt;
-    &lt;div class=&quot;ch-budget r r6&quot;&gt;Budget &lt;b&gt;35 min&lt;/b&gt; · swap driver at step 3&lt;/div&gt;
+    &lt;div class=&quot;ch-budget r r6&quot;&gt;Budget &lt;b&gt;35 min&lt;/b&gt;&lt;/div&gt;
   &lt;/section&gt;
 
   &lt;!-- 05a · REPLAY (interactive) --&gt;
@@ -1139,57 +1137,23 @@
         &lt;button class=&quot;stage-btn am&quot; id=&quot;replayBtn&quot;&gt;Reset B to earliest ⟲&lt;/button&gt;
       &lt;/div&gt;
       &lt;div&gt;
-        &lt;div class=&quot;code-cap&quot;&gt;1 · A second, independent group&lt;/div&gt;
+        &lt;div class=&quot;code-cap&quot;&gt;1 · Two independent groups&lt;/div&gt;
         &lt;pre class=&quot;code r r5&quot;&gt;bin/kafka-console-consumer.sh --bootstrap-server &lt;span class=&quot;v&quot;&gt;$BS&lt;/span&gt; \
   --consumer.config client.properties --topic &lt;span class=&quot;s&quot;&gt;orders&lt;/span&gt; \
-  --group &lt;span class=&quot;s&quot;&gt;analytics&lt;/span&gt; --from-beginning&lt;/pre&gt;
-        &lt;div class=&quot;code-cap&quot; style=&quot;margin-top:14px&quot;&gt;2 · Rewind it — group must be stopped first&lt;/div&gt;
+  --group &lt;span class=&quot;s&quot;&gt;lab2a&lt;/span&gt; --from-beginning
+
+bin/kafka-console-consumer.sh --bootstrap-server &lt;span class=&quot;v&quot;&gt;$BS&lt;/span&gt; \
+  --consumer.config client.properties --topic &lt;span class=&quot;s&quot;&gt;orders&lt;/span&gt; \
+  --group &lt;span class=&quot;s&quot;&gt;lab2b&lt;/span&gt; --from-beginning&lt;/pre&gt;
+        &lt;div class=&quot;code-cap&quot; style=&quot;margin-top:14px&quot;&gt;2 · Rewind group A — group must be stopped first&lt;/div&gt;
         &lt;pre class=&quot;code r r6&quot;&gt;bin/kafka-consumer-groups.sh --bootstrap-server &lt;span class=&quot;v&quot;&gt;$BS&lt;/span&gt; \
-  --command-config client.properties --group &lt;span class=&quot;s&quot;&gt;analytics&lt;/span&gt; \
+  --command-config client.properties --group &lt;span class=&quot;s&quot;&gt;lab2a&lt;/span&gt; \
   --topic &lt;span class=&quot;s&quot;&gt;orders&lt;/span&gt; --reset-offsets --to-earliest --execute
 
 &lt;span class=&quot;c&quot;&gt;# or to a point in time:&lt;/span&gt;
-  --reset-offsets --to-datetime &lt;span class=&quot;v&quot;&gt;2026-10-09T09:00:00.000&lt;/span&gt; --execute
-&lt;span class=&quot;c&quot;&gt;# or relative:&lt;/span&gt;
-  --reset-offsets --shift-by &lt;span class=&quot;v&quot;&gt;-50&lt;/span&gt; --execute
+  --reset-offsets --to-datetime &lt;span class=&quot;v&quot;&gt;2026-10-23T10:00:00.000&lt;/span&gt; --execute
 &lt;span class=&quot;c&quot;&gt;# drop --execute for --dry-run to preview&lt;/span&gt;&lt;/pre&gt;
-        &lt;div class=&quot;callout good r r6&quot; style=&quot;margin-top:12px&quot;&gt;&lt;span class=&quot;ic&quot;&gt;✓&lt;/span&gt;&lt;div&gt;&lt;b&gt;Checkpoint:&lt;/b&gt; &lt;code&gt;analytics&lt;/code&gt; re-reads every record while &lt;code&gt;lab-consumer&lt;/code&gt; stays at lag 0. Two teams, one dataset, zero coordination — and no DLQ, archive or re-publish was involved.&lt;/div&gt;&lt;/div&gt;
-      &lt;/div&gt;
-    &lt;/div&gt;
-  &lt;/section&gt;
-
-  &lt;!-- 05b · SCALE &amp; REBALANCE --&gt;
-  &lt;section class=&quot;slide dense&quot; id=&quot;s5b&quot; data-ch=&quot;5&quot;&gt;
-    &lt;div class=&quot;labtag r r1&quot;&gt;&lt;span class=&quot;d&quot;&gt;&lt;/span&gt;Lab 2 · Step 3 — scale out, hit the ceiling&lt;/div&gt;
-    &lt;h2 class=&quot;r r2&quot;&gt;Find the partition ceiling&lt;br&gt;on purpose.&lt;/h2&gt;
-    &lt;p class=&quot;lede r r3&quot;&gt;Start three consumers in &lt;em&gt;one&lt;/em&gt; group, then a fourth. The fourth will get nothing, because the topic has three partitions. Better to learn this here than in an incident.&lt;/p&gt;
-    &lt;div class=&quot;body-wrap grid-2&quot;&gt;
-      &lt;div&gt;
-        &lt;div class=&quot;code-cap&quot;&gt;Run in three (then four) terminals — same group&lt;/div&gt;
-        &lt;pre class=&quot;code r r4&quot;&gt;bin/kafka-console-consumer.sh --bootstrap-server &lt;span class=&quot;v&quot;&gt;$BS&lt;/span&gt; \
-  --consumer.config client.properties --topic &lt;span class=&quot;s&quot;&gt;orders&lt;/span&gt; \
-  --group &lt;span class=&quot;s&quot;&gt;scaleout&lt;/span&gt; --property &lt;span class=&quot;k&quot;&gt;print.partition&lt;/span&gt;=&lt;span class=&quot;v&quot;&gt;true&lt;/span&gt;&lt;/pre&gt;
-        &lt;div class=&quot;code-cap&quot; style=&quot;margin-top:14px&quot;&gt;Watch the assignment, then add partitions&lt;/div&gt;
-        &lt;pre class=&quot;code r r5&quot;&gt;bin/kafka-consumer-groups.sh --bootstrap-server &lt;span class=&quot;v&quot;&gt;$BS&lt;/span&gt; \
-  --command-config client.properties --describe --group &lt;span class=&quot;s&quot;&gt;scaleout&lt;/span&gt;
-&lt;span class=&quot;c&quot;&gt;# CONSUMER-ID column shows who owns which partition&lt;/span&gt;
-
-bin/kafka-topics.sh --bootstrap-server &lt;span class=&quot;v&quot;&gt;$BS&lt;/span&gt; \
-  --command-config client.properties \
-  --alter --topic &lt;span class=&quot;s&quot;&gt;orders&lt;/span&gt; --partitions &lt;span class=&quot;v&quot;&gt;6&lt;/span&gt;
-&lt;span class=&quot;c&quot;&gt;# partitions can only ever go UP, never down&lt;/span&gt;&lt;/pre&gt;
-      &lt;/div&gt;
-      &lt;div&gt;
-        &lt;div class=&quot;sub am&quot;&gt;Checkpoints&lt;/div&gt;
-        &lt;ul class=&quot;check r r5&quot;&gt;
-          &lt;li&gt;With 3 consumers in &lt;code&gt;scaleout&lt;/code&gt;, each owns &lt;b&gt;exactly one&lt;/b&gt; partition.&lt;/li&gt;
-          &lt;li&gt;The &lt;b&gt;4th consumer idles&lt;/b&gt; — it appears in the group with no assignment.&lt;/li&gt;
-          &lt;li&gt;Starting or killing a consumer triggers a &lt;b&gt;rebalance&lt;/b&gt;: a short pause, then a new assignment.&lt;/li&gt;
-          &lt;li&gt;After &lt;code&gt;--partitions 6&lt;/code&gt;, the idle consumer picks up work on the next rebalance.&lt;/li&gt;
-          &lt;li&gt;Produce more &lt;code&gt;cust-1&lt;/code&gt; records: they may now land in a &lt;b&gt;different partition&lt;/b&gt; than before.&lt;/li&gt;
-        &lt;/ul&gt;
-        &lt;div class=&quot;callout warn r r6&quot; style=&quot;margin-top:12px&quot;&gt;&lt;span class=&quot;ic&quot;&gt;✕&lt;/span&gt;&lt;div&gt;&lt;b&gt;That last checkpoint is the lesson.&lt;/b&gt; &lt;code&gt;hash(key) mod 6 ≠ hash(key) mod 3&lt;/code&gt;, so repartitioning splits a key's history across two partitions and breaks per-key ordering for anything spanning the change. Plan partition counts for peak; don't treat them as an elastic knob.&lt;/div&gt;&lt;/div&gt;
-        &lt;div class=&quot;callout note r r6&quot; style=&quot;margin-top:10px&quot;&gt;&lt;span class=&quot;ic&quot;&gt;◆&lt;/span&gt;&lt;div&gt;Rule of thumb: partitions ≥ your expected peak consumer count, with headroom. Thousands of partitions per cluster is normal; tens of thousands has costs.&lt;/div&gt;&lt;/div&gt;
+        &lt;div class=&quot;callout good r r6&quot; style=&quot;margin-top:12px&quot;&gt;&lt;span class=&quot;ic&quot;&gt;✓&lt;/span&gt;&lt;div&gt;&lt;b&gt;Checkpoint:&lt;/b&gt; &lt;code&gt;lab2a&lt;/code&gt; re-reads every record while &lt;code&gt;lab2b&lt;/code&gt; stays at lag 0. Two teams, one dataset, zero coordination — and no DLQ, archive or re-publish was involved.&lt;/div&gt;&lt;/div&gt;
       &lt;/div&gt;
     &lt;/div&gt;
   &lt;/section&gt;
@@ -1199,36 +1163,35 @@ bin/kafka-topics.sh --bootstrap-server &lt;span class=&quot;v&quot;&gt;$BS&lt;/s
     &lt;div class=&quot;labtag r r1&quot;&gt;&lt;span class=&quot;d&quot;&gt;&lt;/span&gt;Lab 2 · Step 4 — a topic that is a table&lt;/div&gt;
     &lt;h2 class=&quot;r r2&quot;&gt;Compaction, hands on.&lt;/h2&gt;
     &lt;p class=&quot;lede r r3&quot;&gt;Create a compacted topic, write two values for the same key, and read it as current state. This is the mechanism behind &quot;rebuild my cache from the topic&quot;.&lt;/p&gt;
+    &lt;div class=&quot;callout warn r r3&quot; style=&quot;margin-top:10px&quot;&gt;&lt;span class=&quot;ic&quot;&gt;✕&lt;/span&gt;&lt;div&gt;&lt;b&gt;This cluster runs Express brokers:&lt;/b&gt; &lt;code&gt;segment.ms&lt;/code&gt;/&lt;code&gt;segment.bytes&lt;/code&gt; are managed by AWS and can't be edited — Express has its own fixed rule instead, compaction triggers once a partition hits &lt;b&gt;256 MB&lt;/b&gt;. With the handful of messages below you won't see compaction actually happen on screen; narrate what &lt;em&gt;would&lt;/em&gt; happen with real volume.&lt;/div&gt;&lt;/div&gt;
     &lt;div class=&quot;body-wrap grid-2&quot;&gt;
       &lt;div&gt;
-        &lt;div class=&quot;code-cap&quot;&gt;Create a compacted topic&lt;/div&gt;
+        &lt;div class=&quot;code-cap&quot;&gt;Create a compacted topic (already pre-created with 1 partition)&lt;/div&gt;
         &lt;pre class=&quot;code r r4&quot;&gt;bin/kafka-topics.sh --bootstrap-server &lt;span class=&quot;v&quot;&gt;$BS&lt;/span&gt; \
-  --command-config client.properties --create \
-  --topic &lt;span class=&quot;s&quot;&gt;customers&lt;/span&gt; --partitions &lt;span class=&quot;v&quot;&gt;3&lt;/span&gt; \
-  --config &lt;span class=&quot;k&quot;&gt;cleanup.policy&lt;/span&gt;=&lt;span class=&quot;v&quot;&gt;compact&lt;/span&gt; \
-  --config &lt;span class=&quot;k&quot;&gt;min.cleanable.dirty.ratio&lt;/span&gt;=&lt;span class=&quot;v&quot;&gt;0.01&lt;/span&gt; \
-  --config &lt;span class=&quot;k&quot;&gt;segment.ms&lt;/span&gt;=&lt;span class=&quot;v&quot;&gt;10000&lt;/span&gt;   &lt;span class=&quot;c&quot;&gt;# compact quickly, for the demo&lt;/span&gt;&lt;/pre&gt;
+  --command-config client.properties --create --if-not-exists \
+  --topic &lt;span class=&quot;s&quot;&gt;customers&lt;/span&gt; --partitions &lt;span class=&quot;v&quot;&gt;1&lt;/span&gt; --replication-factor &lt;span class=&quot;v&quot;&gt;2&lt;/span&gt; \
+  --config &lt;span class=&quot;k&quot;&gt;cleanup.policy&lt;/span&gt;=&lt;span class=&quot;v&quot;&gt;compact&lt;/span&gt;&lt;/pre&gt;
         &lt;div class=&quot;code-cap&quot; style=&quot;margin-top:14px&quot;&gt;Write, overwrite, tombstone&lt;/div&gt;
         &lt;pre class=&quot;code r r5&quot;&gt;bin/kafka-console-producer.sh --bootstrap-server &lt;span class=&quot;v&quot;&gt;$BS&lt;/span&gt; \
   --producer.config client.properties --topic &lt;span class=&quot;s&quot;&gt;customers&lt;/span&gt; \
   --property &lt;span class=&quot;k&quot;&gt;parse.key&lt;/span&gt;=&lt;span class=&quot;v&quot;&gt;true&lt;/span&gt; --property &lt;span class=&quot;k&quot;&gt;key.separator&lt;/span&gt;=&lt;span class=&quot;v&quot;&gt;:&lt;/span&gt;
 
-&lt;span class=&quot;s&quot;&gt;cust-1:{&quot;tier&quot;:&quot;silver&quot;}&lt;/span&gt;
-&lt;span class=&quot;s&quot;&gt;cust-1:{&quot;tier&quot;:&quot;gold&quot;}&lt;/span&gt;      &lt;span class=&quot;c&quot;&gt;# supersedes the previous value&lt;/span&gt;
-&lt;span class=&quot;s&quot;&gt;cust-2:{&quot;tier&quot;:&quot;bronze&quot;}&lt;/span&gt;
-&lt;span class=&quot;s&quot;&gt;cust-2:&lt;/span&gt;                     &lt;span class=&quot;c&quot;&gt;# empty value = tombstone = delete&lt;/span&gt;&lt;/pre&gt;
+&lt;span class=&quot;s&quot;&gt;cust-001:{&quot;name&quot;:&quot;Maria&quot;,&quot;tier&quot;:&quot;bronze&quot;}&lt;/span&gt;
+&lt;span class=&quot;s&quot;&gt;cust-001:{&quot;name&quot;:&quot;Maria&quot;,&quot;tier&quot;:&quot;silver&quot;}&lt;/span&gt;
+&lt;span class=&quot;s&quot;&gt;cust-001:{&quot;name&quot;:&quot;Maria&quot;,&quot;tier&quot;:&quot;gold&quot;}&lt;/span&gt;   &lt;span class=&quot;c&quot;&gt;# supersedes the previous values&lt;/span&gt;
+&lt;span class=&quot;s&quot;&gt;cust-002:{&quot;name&quot;:&quot;Pedro&quot;,&quot;tier&quot;:&quot;bronze&quot;}&lt;/span&gt;
+&lt;span class=&quot;s&quot;&gt;cust-002:&lt;/span&gt;                             &lt;span class=&quot;c&quot;&gt;# empty value = tombstone = delete&lt;/span&gt;&lt;/pre&gt;
       &lt;/div&gt;
       &lt;div&gt;
         &lt;div class=&quot;code-cap&quot;&gt;Read it as a table&lt;/div&gt;
         &lt;pre class=&quot;code r r5&quot;&gt;bin/kafka-console-consumer.sh --bootstrap-server &lt;span class=&quot;v&quot;&gt;$BS&lt;/span&gt; \
   --consumer.config client.properties --topic &lt;span class=&quot;s&quot;&gt;customers&lt;/span&gt; \
-  --from-beginning --property &lt;span class=&quot;k&quot;&gt;print.key&lt;/span&gt;=&lt;span class=&quot;v&quot;&gt;true&lt;/span&gt; \
-  --group &lt;span class=&quot;s&quot;&gt;state-rebuild&lt;/span&gt;&lt;/pre&gt;
+  --from-beginning --property &lt;span class=&quot;k&quot;&gt;print.key&lt;/span&gt;=&lt;span class=&quot;v&quot;&gt;true&lt;/span&gt;&lt;/pre&gt;
         &lt;div class=&quot;sub am&quot; style=&quot;margin-top:14px&quot;&gt;Checkpoints&lt;/div&gt;
         &lt;ul class=&quot;check r r6&quot;&gt;
-          &lt;li&gt;Immediately after writing, you see &lt;b&gt;both&lt;/b&gt; &lt;code&gt;cust-1&lt;/code&gt; values — compaction is asynchronous, not transactional.&lt;/li&gt;
-          &lt;li&gt;Wait for a compaction cycle, then re-read with a &lt;b&gt;new group&lt;/b&gt;: only &lt;code&gt;tier&quot;:&quot;gold&quot;&lt;/code&gt; survives.&lt;/li&gt;
-          &lt;li&gt;&lt;code&gt;cust-2&lt;/code&gt; disappears entirely after its tombstone is compacted.&lt;/li&gt;
+          &lt;li&gt;You'll see &lt;b&gt;all 4 lines&lt;/b&gt; — on this Express cluster, that's expected (see the 256 MB threshold above), not a bug.&lt;/li&gt;
+          &lt;li&gt;Narrate out loud: &lt;b&gt;with real volume&lt;/b&gt;, re-reading after compaction would show only &lt;code&gt;tier:&quot;gold&quot;&lt;/code&gt; for &lt;code&gt;cust-001&lt;/code&gt; and &lt;code&gt;tier:&quot;bronze&quot;&lt;/code&gt; for &lt;code&gt;cust-002&lt;/code&gt;.&lt;/li&gt;
+          &lt;li&gt;The tombstone (empty value) is the delete mechanism — it would remove &lt;code&gt;cust-002&lt;/code&gt; entirely once compacted.&lt;/li&gt;
           &lt;li&gt;Reading from offset 0 reconstructs &lt;b&gt;current state for every key&lt;/b&gt; — no database query involved.&lt;/li&gt;
         &lt;/ul&gt;
         &lt;div class=&quot;callout good r r6&quot; style=&quot;margin-top:12px&quot;&gt;&lt;span class=&quot;ic&quot;&gt;✓&lt;/span&gt;&lt;div&gt;&lt;b&gt;Where you'll use this:&lt;/b&gt; reference data distribution, feature flags, customer/product master data, and any service that wants a local read-only replica it can rebuild on startup.&lt;/div&gt;&lt;/div&gt;
@@ -1238,37 +1201,35 @@ bin/kafka-topics.sh --bootstrap-server &lt;span class=&quot;v&quot;&gt;$BS&lt;/s
 
   &lt;!-- 05d · SCHEMA EVOLUTION --&gt;
   &lt;section class=&quot;slide dense&quot; id=&quot;s5d&quot; data-ch=&quot;5&quot;&gt;
-    &lt;div class=&quot;labtag r r1&quot;&gt;&lt;span class=&quot;d&quot;&gt;&lt;/span&gt;Lab 2 · Step 5 — change the contract safely&lt;/div&gt;
+    &lt;div class=&quot;labtag r r1&quot;&gt;&lt;span class=&quot;d&quot;&gt;&lt;/span&gt;Lab 2 · Step 4 — change the contract safely&lt;/div&gt;
     &lt;h2 class=&quot;r r2&quot;&gt;Evolve the payload&lt;br&gt;without breaking a reader.&lt;/h2&gt;
-    &lt;p class=&quot;lede r r3&quot;&gt;The last exercise, and the one with the longest shadow. Register a schema, produce against it, add an optional field, and prove the old consumer still works — including on old records.&lt;/p&gt;
+    &lt;p class=&quot;lede r r3&quot;&gt;The last exercise. Register a schema with AWS Glue Schema Registry via the CLI, then see which changes it accepts and which it rejects — the surprising part is which is which.&lt;/p&gt;
     &lt;div class=&quot;body-wrap grid-2&quot;&gt;
       &lt;div&gt;
-        &lt;div class=&quot;code-cap&quot;&gt;Producer/consumer config — AWS Glue Schema Registry&lt;/div&gt;
-        &lt;pre class=&quot;code r r4&quot;&gt;&lt;span class=&quot;c&quot;&gt;# producer&lt;/span&gt;
-&lt;span class=&quot;k&quot;&gt;value.serializer&lt;/span&gt;=&lt;span class=&quot;v&quot;&gt;com.amazonaws.services.schemaregistry\
-  .serializers.GlueSchemaRegistryKafkaSerializer&lt;/span&gt;
-&lt;span class=&quot;k&quot;&gt;dataFormat&lt;/span&gt;=&lt;span class=&quot;v&quot;&gt;AVRO&lt;/span&gt;
-&lt;span class=&quot;k&quot;&gt;registry.name&lt;/span&gt;=&lt;span class=&quot;v&quot;&gt;workshop-registry&lt;/span&gt;
-&lt;span class=&quot;k&quot;&gt;schemaName&lt;/span&gt;=&lt;span class=&quot;v&quot;&gt;Order&lt;/span&gt;
-&lt;span class=&quot;k&quot;&gt;schemaAutoRegistrationEnabled&lt;/span&gt;=&lt;span class=&quot;v&quot;&gt;true&lt;/span&gt;
-&lt;span class=&quot;k&quot;&gt;compatibility&lt;/span&gt;=&lt;span class=&quot;v&quot;&gt;BACKWARD&lt;/span&gt;
+        &lt;div class=&quot;code-cap&quot;&gt;Create the registry and register v1 + v2&lt;/div&gt;
+        &lt;pre class=&quot;code r r4&quot;&gt;aws glue create-registry --registry-name &lt;span class=&quot;s&quot;&gt;pandora-workshop&lt;/span&gt;
 
-&lt;span class=&quot;c&quot;&gt;# consumer&lt;/span&gt;
-&lt;span class=&quot;k&quot;&gt;value.deserializer&lt;/span&gt;=&lt;span class=&quot;v&quot;&gt;com.amazonaws.services.schemaregistry\
-  .deserializers.GlueSchemaRegistryKafkaDeserializer&lt;/span&gt;&lt;/pre&gt;
-        &lt;div class=&quot;callout note r r5&quot; style=&quot;margin-top:12px&quot;&gt;&lt;span class=&quot;ic&quot;&gt;◆&lt;/span&gt;&lt;div&gt;Short on time? Do this one as a &lt;b&gt;guided demo&lt;/b&gt; rather than per-pair — the concept matters more than the keystrokes, and the Avro tooling setup can eat ten minutes.&lt;/div&gt;&lt;/div&gt;
+aws glue create-schema \
+  --registry-id RegistryName=&lt;span class=&quot;s&quot;&gt;pandora-workshop&lt;/span&gt; \
+  --schema-name &lt;span class=&quot;s&quot;&gt;order&lt;/span&gt; --data-format &lt;span class=&quot;v&quot;&gt;AVRO&lt;/span&gt; \
+  --compatibility &lt;span class=&quot;v&quot;&gt;BACKWARD&lt;/span&gt; \
+  --schema-definition &quot;$(cat schemas/order-v1.avsc)&quot;
+
+&lt;span class=&quot;c&quot;&gt;# v2 adds 'channel' WITH a default — accepted&lt;/span&gt;
+aws glue register-schema-version \
+  --schema-id SchemaName=&lt;span class=&quot;s&quot;&gt;order&lt;/span&gt;,RegistryName=&lt;span class=&quot;s&quot;&gt;pandora-workshop&lt;/span&gt; \
+  --schema-definition &quot;$(cat schemas/order-v2.avsc)&quot;&lt;/pre&gt;
+        &lt;div class=&quot;callout warn r r5&quot; style=&quot;margin-top:12px&quot;&gt;&lt;span class=&quot;ic&quot;&gt;✕&lt;/span&gt;&lt;div&gt;&lt;b&gt;The counter-intuitive part:&lt;/b&gt; registering a v3 that &lt;em&gt;deletes&lt;/em&gt; &lt;code&gt;amount&lt;/code&gt; gives &lt;code&gt;Status: AVAILABLE&lt;/code&gt; — deleting a field is BACKWARD-safe, the new consumer just ignores it. What actually fails is a v4 that &lt;em&gt;adds a required field with no default&lt;/em&gt; (e.g. &lt;code&gt;taxId&lt;/code&gt;) — that gives &lt;code&gt;Status: FAILURE&lt;/code&gt;.&lt;/div&gt;&lt;/div&gt;
       &lt;/div&gt;
       &lt;div&gt;
         &lt;div class=&quot;sub&quot;&gt;The exercise&lt;/div&gt;
         &lt;ol class=&quot;labsteps r r5&quot;&gt;
-          &lt;li&gt;&lt;b&gt;Produce v1 records&lt;/b&gt; (&lt;code&gt;orderId&lt;/code&gt;, &lt;code&gt;amount&lt;/code&gt;) to a new topic &lt;code&gt;orders-avro&lt;/code&gt;. Confirm the schema appears in the registry.&lt;/li&gt;
-          &lt;li&gt;&lt;b&gt;Start a v1 consumer&lt;/b&gt; and leave it running.&lt;/li&gt;
-          &lt;li&gt;&lt;b&gt;Add a field with a default&lt;/b&gt; — &lt;code&gt;channel: string = &quot;unknown&quot;&lt;/code&gt; — and produce v2 records. Registration succeeds: it's BACKWARD-compatible.&lt;/li&gt;
-          &lt;li&gt;&lt;b&gt;Watch the v1 consumer&lt;/b&gt; keep working on v2 records; it simply ignores the new field.&lt;/li&gt;
-          &lt;li&gt;&lt;b&gt;Now try a breaking change&lt;/b&gt; — remove &lt;code&gt;amount&lt;/code&gt;, or rename it. The registry &lt;b&gt;rejects&lt;/b&gt; the registration. That rejection is the feature.&lt;/li&gt;
-          &lt;li&gt;&lt;b&gt;Start a v2 consumer with &lt;code&gt;--from-beginning&lt;/code&gt;&lt;/b&gt;: old v1 records read back with &lt;code&gt;channel=&quot;unknown&quot;&lt;/code&gt; from the default.&lt;/li&gt;
+          &lt;li&gt;&lt;b&gt;Register v1&lt;/b&gt; (&lt;code&gt;orderId&lt;/code&gt;, &lt;code&gt;amount&lt;/code&gt;) and &lt;b&gt;v2&lt;/b&gt; (adds &lt;code&gt;channel&lt;/code&gt; with &lt;code&gt;default: &quot;unknown&quot;&lt;/code&gt;) — both succeed.&lt;/li&gt;
+          &lt;li&gt;&lt;b&gt;Try deleting a field&lt;/b&gt; (v3, no &lt;code&gt;amount&lt;/code&gt;) — &lt;code&gt;AVAILABLE&lt;/code&gt;. Surprising, but correct: nothing needs a field it no longer reads.&lt;/li&gt;
+          &lt;li&gt;&lt;b&gt;Try adding a required field&lt;/b&gt; (v4, &lt;code&gt;taxId&lt;/code&gt; with no default) — &lt;code&gt;FAILURE&lt;/code&gt;. &lt;b&gt;That rejection is the feature.&lt;/b&gt;&lt;/li&gt;
+          &lt;li&gt;&lt;b&gt;(Optional, Python) Produce and consume real Avro messages&lt;/b&gt; against &lt;code&gt;orders-avro&lt;/code&gt; using &lt;code&gt;producer/avro_producer.py&lt;/code&gt; and &lt;code&gt;avro_consumer.py&lt;/code&gt; from the repo — the same consumer reads both v1 and v2 payloads without any code change, resolving the schema from each message's header.&lt;/li&gt;
         &lt;/ol&gt;
-        &lt;div class=&quot;callout good r r6&quot; style=&quot;margin-top:12px&quot;&gt;&lt;span class=&quot;ic&quot;&gt;✓&lt;/span&gt;&lt;div&gt;&lt;b&gt;Checkpoint:&lt;/b&gt; step 5 failed, and step 6 worked on historical data. That combination is what makes a retained log safe to build a platform on.&lt;/div&gt;&lt;/div&gt;
+        &lt;div class=&quot;callout good r r6&quot; style=&quot;margin-top:12px&quot;&gt;&lt;span class=&quot;ic&quot;&gt;✓&lt;/span&gt;&lt;div&gt;&lt;b&gt;Checkpoint:&lt;/b&gt; v4 failed, v2/v3 succeeded. The rule that matters: can the &lt;em&gt;new&lt;/em&gt; consumer handle &lt;em&gt;old&lt;/em&gt; data? Deleting what you no longer need never breaks that; requiring something old data never had, with no fallback, does.&lt;/div&gt;&lt;/div&gt;
       &lt;/div&gt;
     &lt;/div&gt;
   &lt;/section&gt;
@@ -1281,7 +1242,6 @@ bin/kafka-topics.sh --bootstrap-server &lt;span class=&quot;v&quot;&gt;$BS&lt;/s
     &lt;div class=&quot;body-wrap grid-4&quot;&gt;
       &lt;div class=&quot;card cy r r4&quot;&gt;&lt;h4&gt;Replay&lt;/h4&gt;&lt;p&gt;&quot;Can you resend yesterday?&quot; became a one-line offset reset — self-service, no upstream involvement, no archive to restore.&lt;/p&gt;&lt;/div&gt;
       &lt;div class=&quot;card am r r4&quot;&gt;&lt;h4&gt;Independent fan-out&lt;/h4&gt;&lt;p&gt;A second team consumed the same data at their own pace without touching the producer or affecting the first consumer's latency.&lt;/p&gt;&lt;/div&gt;
-      &lt;div class=&quot;card vi r r4&quot;&gt;&lt;h4&gt;Elastic consumption&lt;/h4&gt;&lt;p&gt;Scaling out was adding processes — bounded by partitions. You also saw the sharp edge: repartitioning moves keys.&lt;/p&gt;&lt;/div&gt;
       &lt;div class=&quot;card cy r r5&quot;&gt;&lt;h4&gt;State &amp;amp; contracts&lt;/h4&gt;&lt;p&gt;Compaction turned a topic into a rebuildable table; the registry turned the payload into a versioned, enforced contract.&lt;/p&gt;&lt;/div&gt;
     &lt;/div&gt;
     &lt;div class=&quot;body-wrap grid-2&quot;&gt;
@@ -2252,9 +2212,9 @@ paintClock();
       el('text',Object.assign({x:far?cx-13:cx+13,y:yy+2,class:'lbl-sm',fill:color},
         far?{'text-anchor':'end'}:{}),svg).textContent=label+' @ offset '+off;
     }
-    cursor(a,'var(--cyan)','group A · lab-consumer (live)',216);
+    cursor(a,'var(--cyan)','group A · lab2a (live)',216);
     cursor(b,replaying?'var(--amber)':'var(--cyan-dim)',
-      replaying?'group B · analytics (REPLAYING)':'group B · analytics',266);
+      replaying?'group B · lab2b (REPLAYING)':'group B · lab2b',266);
     el('text',{x:320,y:324,'text-anchor':'middle',class:'lbl-sm',
       fill:replaying?'var(--amber)':'var(--muted)'},svg)
       .textContent = replaying
@@ -2439,22 +2399,15 @@ const NOTES={
     &quot;&lt;b&gt;Then take the 10-minute break here&lt;/b&gt; if you haven't already, and tell them to leave terminals open.&quot;]},
 
   ch5:{title:&quot;Chapter 05 — Lab 2&quot;,sub:&quot;35 min hands-on&quot;,points:[
-    &quot;Lab 2 is the differentiator lab: replay, independent groups, scaling ceiling, compaction, schema evolution.&quot;,
-    &quot;&lt;b&gt;You will not finish all five steps with every pair.&lt;/b&gt; Prioritise steps 1–3 for everyone; run step 5 as a guided demo if time is short. Say this up front so nobody feels behind.&quot;]},
+    &quot;Lab 2 is the differentiator lab: replay, independent groups, compaction, schema evolution.&quot;,
+    &quot;&lt;b&gt;You will not finish all four steps with every pair.&lt;/b&gt; Prioritise steps 1–2 for everyone; run step 4 as a guided demo if time is short. Say this up front so nobody feels behind.&quot;]},
 
   s5a:{title:&quot;Lab 2 · groups &amp; replay&quot;,sub:&quot;8 min&quot;,points:[
     &quot;Click the replay button on the diagram first so they know what they're aiming for.&quot;,
     &quot;Emphasise the operational reality: the group must be &lt;b&gt;stopped&lt;/b&gt; to reset its offsets. People hit this immediately.&quot;,
     &quot;Show them &lt;code&gt;--dry-run&lt;/code&gt; before &lt;code&gt;--execute&lt;/code&gt; — it's the habit you want them to take to production.&quot;,
     &quot;&lt;code&gt;--to-datetime&lt;/code&gt; is the one that wins arguments with the business: 'reprocess from 09:00 yesterday' is a command, not a project.&quot;,
-    &quot;The checkpoint to verify at each table: &lt;b&gt;analytics re-reads everything while lab-consumer stays at lag 0&lt;/b&gt;.&quot;]},
-
-  s5b:{title:&quot;Lab 2 · scale &amp; rebalance&quot;,sub:&quot;9 min · swap drivers here&quot;,points:[
-    &quot;Tell them the fourth consumer is &lt;em&gt;supposed&lt;/em&gt; to get nothing. The point is to see the ceiling in a lab rather than in an incident.&quot;,
-    &quot;Have them run &lt;code&gt;--describe&lt;/code&gt; while all four are up and read the CONSUMER-ID column — seeing ownership per partition makes the model concrete.&quot;,
-    &quot;Then &lt;code&gt;--alter --partitions 6&lt;/code&gt; and watch the idle consumer pick up work. Note partitions only go up, never down.&quot;,
-    &quot;&lt;b&gt;The real lesson is the last checkpoint:&lt;/b&gt; produce more &lt;code&gt;cust-1&lt;/code&gt; records after repartitioning and watch them possibly land elsewhere. hash(key) mod 6 ≠ hash(key) mod 3. Per-key ordering breaks across the change.&quot;,
-    &quot;Takeaway to state plainly: &lt;b&gt;size partitions for peak with headroom; it is not an elastic knob.&lt;/b&gt;&quot;]},
+    &quot;The checkpoint to verify at each table: &lt;b&gt;group B re-reads everything while group A stays at lag 0&lt;/b&gt;.&quot;]},
 
   s5c:{title:&quot;Lab 2 · compaction&quot;,sub:&quot;8 min&quot;,points:[
     &quot;The demo-friendly configs matter: &lt;code&gt;segment.ms=10000&lt;/code&gt; and a low &lt;code&gt;min.cleanable.dirty.ratio&lt;/code&gt;, or compaction won't visibly happen inside the lab.&quot;,
@@ -2463,11 +2416,12 @@ const NOTES={
     &quot;The reframe to land: &lt;b&gt;reading from offset 0 reconstructs current state for every key&lt;/b&gt; — no database query. Then name where they'd use it: reference data, feature flags, master data, rebuildable local caches.&quot;,
     &quot;If you're behind schedule, this is the step to demo from the front rather than have everyone do.&quot;]},
 
-  s5d:{title:&quot;Lab 2 · schema evolution&quot;,sub:&quot;8 min · demo if short on time&quot;,points:[
-    &quot;Be honest about the Avro/registry setup cost. If you're past the 2h20 mark, &lt;b&gt;run this as a guided demo&lt;/b&gt; — the concept carries the value, not the keystrokes.&quot;,
-    &quot;The sequence that teaches: v1 producer → running v1 consumer → add an optional field with a default → v1 consumer keeps working.&quot;,
-    &quot;Then the &lt;b&gt;deliberate failure&lt;/b&gt;: remove or rename a required field and watch the registry reject it. That rejection is the product.&quot;,
-    &quot;Finish with the replay dimension: a v2 consumer reading from offset 0 gets &lt;code&gt;channel=\&quot;unknown\&quot;&lt;/code&gt; on old records from the default. &lt;b&gt;That combination — rejected breakage plus safe replay — is what makes a log safe as a platform.&lt;/b&gt;&quot;]},
+  s5d:{title:&quot;Lab 2 · schema evolution&quot;,sub:&quot;8 min · AWS CLI, no Avro tooling setup needed&quot;,points:[
+    &quot;Pure AWS CLI against Glue Schema Registry — no Java/Maven setup, so this is doable per-pair, not just as a demo.&quot;,
+    &quot;Run v1 and v2 (add &lt;code&gt;channel&lt;/code&gt; with a default) first — both register as &lt;code&gt;AVAILABLE&lt;/code&gt;.&quot;,
+    &quot;&lt;b&gt;Flip the intuition on purpose:&lt;/b&gt; have them register a v3 that deletes &lt;code&gt;amount&lt;/code&gt; first — it succeeds, which surprises almost everyone. Then v4 that adds a required &lt;code&gt;taxId&lt;/code&gt; with no default — that's the one that fails.&quot;,
+    &quot;Land the rule explicitly: BACKWARD compatibility is about the &lt;em&gt;new&lt;/em&gt; consumer reading &lt;em&gt;old&lt;/em&gt; data. Deleting a field is safe; requiring a new one without a fallback isn't.&quot;,
+    &quot;If time allows, point at &lt;code&gt;producer/avro_producer.py&lt;/code&gt; and &lt;code&gt;avro_consumer.py&lt;/code&gt; in the repo for the Python version that actually produces/consumes real Avro messages — verified end-to-end, same consumer reads v1 and v2 payloads with no code change.&quot;]},
 
   s5e:{title:&quot;Lab 2 debrief&quot;,sub:&quot;4 min&quot;,points:[
     &quot;Four capability cards, then immediately the honest list of what got harder. Both halves, every time.&quot;,
