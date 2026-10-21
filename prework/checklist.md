@@ -8,19 +8,32 @@ Complete this before the workshop so connecting doesn't eat into lab time.
 2. **Connect to your workshop host.** From your account's console, open a Systems Manager Session Manager session to the `KafkaClientInstance`.
    - *Check:* you get a terminal on the host.
 
-3. **Run the connection check** (copy/paste, run inside the host):
+3. **Clone the workshop repo.** All the material (scripts, labs, deck) lives in a public GitHub repo. Inside the host:
    ```bash
    sudo su - ec2-user
+   git clone https://github.com/jantcart-sketch/aws-kafka-workshop.git
+   cd aws-kafka-workshop
+   ```
+   - *Check:* the command finishes with no error and `ls` shows the `labs/`, `scripts/`, `producer/`, `schemas/` folders.
+
+4. **Run the connection check** (copy/paste, run inside `aws-kafka-workshop/scripts/`):
+   ```bash
+   cd scripts/
    source bootstrap.sh
    /home/ec2-user/kafka/bin/kafka-topics.sh --bootstrap-server $BS --command-config /home/ec2-user/kafka/config/client-iam.properties --list
    ```
    - *Check:* the command returns a list of topics (internal `__...` topics at minimum) without an authentication or timeout error.
 
-4. **Confirm your topics exist**:
+5. **Confirm your topics exist**:
    ```bash
    /home/ec2-user/kafka/bin/kafka-topics.sh --bootstrap-server $BS --command-config /home/ec2-user/kafka/config/client-iam.properties \
      --describe --topic orders
    ```
    - *Check:* the command shows the `orders` topic with 3 partitions.
 
-5. **If anything fails**, note the exact error message and who to contact (channel/contact to be filled in by the event organizer).
+6. **If anything fails**, note the exact error message and who to contact (channel/contact to be filled in by the event organizer).
+
+## Workshop resources
+
+- **Repo (code, scripts, labs):** https://github.com/jantcart-sketch/aws-kafka-workshop
+- **Deck (slides, open in your browser):** https://jantcart-sketch.github.io/aws-kafka-workshop/

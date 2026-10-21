@@ -6,9 +6,16 @@ Each attendee gets a dedicated AWS account for the event (via AWS Workshop Studi
 
 ## Quick start
 
-1. Open the deck: [`index.html`](index.html) (or open it locally in your browser). Toggle between **Workshop** (live session slides) and **Deep dive** (how Kafka works, internals) with the buttons at the top.
+1. Open the deck: **https://jantcart-sketch.github.io/aws-kafka-workshop/** (or [`index.html`](index.html) locally in your browser). Toggle between **Workshop** (live session slides) and **Deep dive** (how Kafka works, internals) with the buttons at the top.
 2. Follow the pre-work checklist: [`prework/checklist.md`](prework/checklist.md).
-3. Connect to your workshop host (SSM Session Manager, no SSH needed) and run the setup script — see [`docs/attendee-guide.md`](docs/attendee-guide.md) section 1.
+3. Connect to your workshop host (SSM Session Manager, no SSH needed), then clone this repo and run the setup script:
+   ```bash
+   sudo su - ec2-user
+   git clone https://github.com/jantcart-sketch/aws-kafka-workshop.git
+   cd aws-kafka-workshop/scripts
+   source bootstrap.sh
+   ```
+   See [`docs/attendee-guide.md`](docs/attendee-guide.md) section 1 for the full walkthrough (including the two-tabs setup you'll need for the labs).
 4. Work through the labs in order:
    - [`labs/lab1-first-event-stream.md`](labs/lab1-first-event-stream.md) — create a topic, produce/consume with keys, inspect a consumer group.
    - [`labs/lab2-replay-groups-schema-evolution.md`](labs/lab2-replay-groups-schema-evolution.md) — independent consumer groups, replay, compaction, Avro schema evolution with AWS Glue Schema Registry.
