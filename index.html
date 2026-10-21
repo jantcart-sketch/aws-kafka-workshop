@@ -1009,33 +1009,29 @@
       <div>
         <div class="sub">Run these in order — two terminals</div>
         <ol class="labsteps r r3">
-          <li><b>Create the topic.</b> Three partitions so you can see keys spread.
-            <pre class="code" style="margin-top:7px">bin/kafka-topics.sh --bootstrap-server <span class="v">$BS</span> \
-  --command-config client.properties \
-  --create --topic <span class="s">orders</span> --partitions <span class="v">3</span>
-<span class="c"># provisioned MSK / self-managed: add --replication-factor 3</span>
-<span class="c"># MSK Serverless manages replication for you — omit it</span></pre></li>
-          <li><b>Describe it.</b> Note the leader and the replica/ISR list per partition.
-            <pre class="code" style="margin-top:7px">bin/kafka-topics.sh --bootstrap-server <span class="v">$BS</span> \
-  --command-config client.properties --describe --topic <span class="s">orders</span></pre></li>
+          <li><b>Describe <code>orders</code>.</b> Already created by <code>bootstrap.sh</code> — 3 partitions. Note the leader and replicas per partition.
+            <pre class="code" style="margin-top:7px">$KAFKA/bin/kafka-topics.sh --bootstrap-server <span class="v">$BS</span> \
+  --command-config <span class="v">$PROPS</span> --describe --topic <span class="s">orders</span></pre></li>
           <li><b>Produce keyed records</b> in terminal 1. Type a few lines, reusing some keys.
-            <pre class="code" style="margin-top:7px">bin/kafka-console-producer.sh --bootstrap-server <span class="v">$BS</span> \
-  --producer.config client.properties --topic <span class="s">orders</span> \
+            <pre class="code" style="margin-top:7px">$KAFKA/bin/kafka-console-producer.sh --bootstrap-server <span class="v">$BS</span> \
+  --producer.config <span class="v">$PROPS</span> --topic <span class="s">orders</span> \
   --property <span class="k">parse.key</span>=<span class="v">true</span> --property <span class="k">key.separator</span>=<span class="v">:</span>
 
-<span class="s">cust-1:{"orderId":"A1","amount":42.00}</span>
-<span class="s">cust-2:{"orderId":"A2","amount":17.50}</span>
-<span class="s">cust-1:{"orderId":"A3","amount":99.95}</span></pre></li>
-          <li><b>Consume from the beginning</b> in terminal 2, printing metadata.
-            <pre class="code" style="margin-top:7px">bin/kafka-console-consumer.sh --bootstrap-server <span class="v">$BS</span> \
-  --consumer.config client.properties --topic <span class="s">orders</span> \
-  --group <span class="s">lab-consumer</span> --from-beginning \
-  --property <span class="k">print.key</span>=<span class="v">true</span> --property <span class="k">print.partition</span>=<span class="v">true</span> \
-  --property <span class="k">print.offset</span>=<span class="v">true</span></pre></li>
-          <li><b>Stop the consumer (Ctrl-C) and inspect the group.</b> This is the payoff.
-            <pre class="code" style="margin-top:7px">bin/kafka-consumer-groups.sh --bootstrap-server <span class="v">$BS</span> \
-  --command-config client.properties \
-  --describe --group <span class="s">lab-consumer</span></pre></li>
+<span class="s">cust-001:{"orderId":"o1","amount":42.0}</span>
+<span class="s">cust-002:{"orderId":"o2","amount":15.5}</span>
+<span class="s">cust-001:{"orderId":"o3","amount":9.9}</span></pre></li>
+          <li><b>Consume from the beginning</b> in terminal 2, printing the key. Then run it again — same 5 records, nothing was consumed away.
+            <pre class="code" style="margin-top:7px">$KAFKA/bin/kafka-console-consumer.sh --bootstrap-server <span class="v">$BS</span> \
+  --consumer.config <span class="v">$PROPS</span> --topic <span class="s">orders</span> \
+  --from-beginning --property <span class="k">print.key</span>=<span class="v">true</span></pre></li>
+          <li><b>Use a real consumer group</b> — <code>lab1</code>. Run it, <code>Ctrl+C</code>, run it again without <code>--from-beginning</code>: nothing new arrives, it resumed from its saved offset.
+            <pre class="code" style="margin-top:7px">$KAFKA/bin/kafka-console-consumer.sh --bootstrap-server <span class="v">$BS</span> \
+  --consumer.config <span class="v">$PROPS</span> --topic <span class="s">orders</span> \
+  --group <span class="s">lab1</span> --from-beginning</pre></li>
+          <li><b>Inspect the group.</b> This is the payoff.
+            <pre class="code" style="margin-top:7px">$KAFKA/bin/kafka-consumer-groups.sh --bootstrap-server <span class="v">$BS</span> \
+  --command-config <span class="v">$PROPS</span> \
+  --describe --group <span class="s">lab1</span></pre></li>
         </ol>
       </div>
       <div>
@@ -1045,11 +1041,11 @@
         </div>
         <div class="sub am" style="margin-top:16px">Checkpoints — tick these off</div>
         <ul class="check r r5">
-          <li><b>Same key, same partition.</b> Both <code>cust-1</code> records landed in one partition, in order.</li>
+          <li><b>Same key, same partition.</b> All three <code>cust-001</code> records stay in relative order; <code>cust-002</code> may interleave.</li>
           <li><b>Offsets are per partition.</b> They start at 0 in each, and they're dense and monotonic.</li>
           <li><b>CURRENT-OFFSET, LOG-END-OFFSET, LAG</b> appear in the group description. Lag should be 0.</li>
-          <li><b>Restart the consumer without <code>--from-beginning</code></b> → nothing arrives. It resumed from its committed offset.</li>
-          <li><b>Restart it with a brand-new <code>--group</code></b> → everything arrives again. <b>Nothing was consumed away.</b></li>
+          <li><b>Restart <code>lab1</code> without <code>--from-beginning</code></b> → nothing arrives. It resumed from its committed offset.</li>
+          <li><b>Restart with a brand-new <code>--group</code></b> → everything arrives again. <b>Nothing was consumed away.</b></li>
         </ul>
         <div class="callout good r r6" style="margin-top:12px"><span class="ic">✓</span><div>That last pair of checkpoints <em>is</em> the whole workshop in two commands. Try them before moving on.</div></div>
       </div>
@@ -1080,16 +1076,15 @@
     <div class="ch-list">
       <div class="ch-item r r4"><b>1 · Two groups, one topic</b>Independent positions, no coordination.</div>
       <div class="ch-item r r4"><b>2 · Replay</b>Reset offsets to earliest, and to a timestamp.</div>
-      <div class="ch-item r r5"><b>3 · Scale &amp; rebalance</b>Add consumers; find the partition ceiling.</div>
-      <div class="ch-item r r5"><b>4 · Compaction</b>Build a topic that behaves like a table.</div>
-      <div class="ch-item r r6"><b>5 · Evolution</b>Add a field without breaking a consumer.</div>
+      <div class="ch-item r r5"><b>3 · Compaction</b>Build a topic that behaves like a table.</div>
+      <div class="ch-item r r6"><b>4 · Evolution</b>Add a field without breaking a consumer (Glue Schema Registry).</div>
     </div>
-    <div class="ch-budget r r6">Budget <b>35 min</b> · swap driver at step 3</div>
+    <div class="ch-budget r r6">Budget <b>35 min</b></div>
   </section>
 
   <!-- 05a · REPLAY (interactive) -->
   <section class="slide dense" id="s5a" data-ch="5">
-    <div class="labtag r r1"><span class="d"></span>Lab 2 · Steps 1–2 — groups &amp; replay</div>
+    <div class="labtag r r1"><span class="d"></span>Lab 2 · Part A/B — groups &amp; replay</div>
     <h2 class="r r2">Replay is just<br>moving a <span class="k-cyan">number</span>.</h2>
     <p class="lede r r3">Two independent groups on one topic, then rewind one of them. Note that the producer is untouched and group A never notices.</p>
     <div class="body-wrap grid-52">
@@ -1099,97 +1094,51 @@
         <button class="stage-btn am" id="replayBtn">Reset B to earliest ⟲</button>
       </div>
       <div>
-        <div class="code-cap">1 · A second, independent group</div>
-        <pre class="code r r5">bin/kafka-console-consumer.sh --bootstrap-server <span class="v">$BS</span> \
-  --consumer.config client.properties --topic <span class="s">orders</span> \
-  --group <span class="s">analytics</span> --from-beginning</pre>
-        <div class="code-cap" style="margin-top:14px">2 · Rewind it — group must be stopped first</div>
-        <pre class="code r r6">bin/kafka-consumer-groups.sh --bootstrap-server <span class="v">$BS</span> \
-  --command-config client.properties --group <span class="s">analytics</span> \
+        <div class="code-cap">Part A · two independent groups</div>
+        <pre class="code r r5">$KAFKA/bin/kafka-console-consumer.sh --bootstrap-server <span class="v">$BS</span> \
+  --consumer.config <span class="v">$PROPS</span> --topic <span class="s">orders</span> \
+  --group <span class="s">lab2a</span> --from-beginning
+<span class="c"># ...and the same with --group lab2b</span></pre>
+        <div class="code-cap" style="margin-top:14px">Part B · rewind — group must be stopped first</div>
+        <pre class="code r r6">$KAFKA/bin/kafka-consumer-groups.sh --bootstrap-server <span class="v">$BS</span> \
+  --command-config <span class="v">$PROPS</span> --group <span class="s">lab2a</span> \
   --topic <span class="s">orders</span> --reset-offsets --to-earliest --execute
 
 <span class="c"># or to a point in time:</span>
-  --reset-offsets --to-datetime <span class="v">2026-10-09T09:00:00.000</span> --execute
-<span class="c"># or relative:</span>
-  --reset-offsets --shift-by <span class="v">-50</span> --execute
-<span class="c"># drop --execute for --dry-run to preview</span></pre>
-        <div class="callout good r r6" style="margin-top:12px"><span class="ic">✓</span><div><b>Checkpoint:</b> <code>analytics</code> re-reads every record while <code>lab-consumer</code> stays at lag 0. Two teams, one dataset, zero coordination — and no DLQ, archive or re-publish was involved.</div></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- 05b · SCALE & REBALANCE -->
-  <section class="slide dense" id="s5b" data-ch="5">
-    <div class="labtag r r1"><span class="d"></span>Lab 2 · Step 3 — scale out, hit the ceiling</div>
-    <h2 class="r r2">Find the partition ceiling<br>on purpose.</h2>
-    <p class="lede r r3">Start three consumers in <em>one</em> group, then a fourth. The fourth will get nothing, because the topic has three partitions. Better to learn this here than in an incident.</p>
-    <div class="body-wrap grid-2">
-      <div>
-        <div class="code-cap">Run in three (then four) terminals — same group</div>
-        <pre class="code r r4">bin/kafka-console-consumer.sh --bootstrap-server <span class="v">$BS</span> \
-  --consumer.config client.properties --topic <span class="s">orders</span> \
-  --group <span class="s">scaleout</span> --property <span class="k">print.partition</span>=<span class="v">true</span></pre>
-        <div class="code-cap" style="margin-top:14px">Watch the assignment, then add partitions</div>
-        <pre class="code r r5">bin/kafka-consumer-groups.sh --bootstrap-server <span class="v">$BS</span> \
-  --command-config client.properties --describe --group <span class="s">scaleout</span>
-<span class="c"># CONSUMER-ID column shows who owns which partition</span>
-
-bin/kafka-topics.sh --bootstrap-server <span class="v">$BS</span> \
-  --command-config client.properties \
-  --alter --topic <span class="s">orders</span> --partitions <span class="v">6</span>
-<span class="c"># partitions can only ever go UP, never down</span></pre>
-      </div>
-      <div>
-        <div class="sub am">Checkpoints</div>
-        <ul class="check r r5">
-          <li>With 3 consumers in <code>scaleout</code>, each owns <b>exactly one</b> partition.</li>
-          <li>The <b>4th consumer idles</b> — it appears in the group with no assignment.</li>
-          <li>Starting or killing a consumer triggers a <b>rebalance</b>: a short pause, then a new assignment.</li>
-          <li>After <code>--partitions 6</code>, the idle consumer picks up work on the next rebalance.</li>
-          <li>Produce more <code>cust-1</code> records: they may now land in a <b>different partition</b> than before.</li>
-        </ul>
-        <div class="callout warn r r6" style="margin-top:12px"><span class="ic">✕</span><div><b>That last checkpoint is the lesson.</b> <code>hash(key) mod 6 ≠ hash(key) mod 3</code>, so repartitioning splits a key's history across two partitions and breaks per-key ordering for anything spanning the change. Plan partition counts for peak; don't treat them as an elastic knob.</div></div>
-        <div class="callout note r r6" style="margin-top:10px"><span class="ic">◆</span><div>Rule of thumb: partitions ≥ your expected peak consumer count, with headroom. Thousands of partitions per cluster is normal; tens of thousands has costs.</div></div>
+  --reset-offsets --to-datetime <span class="v">2026-10-23T10:00:00.000</span> --execute</pre>
+        <div class="callout good r r6" style="margin-top:12px"><span class="ic">✓</span><div><b>Checkpoint:</b> <code>lab2a</code> re-reads every record while <code>lab2b</code> stays at lag 0. Two groups, one dataset, zero coordination — and no DLQ, archive or re-publish was involved.</div></div>
       </div>
     </div>
   </section>
 
   <!-- 05c · COMPACTION -->
   <section class="slide dense" id="s5c" data-ch="5">
-    <div class="labtag r r1"><span class="d"></span>Lab 2 · Step 4 — a topic that is a table</div>
+    <div class="labtag r r1"><span class="d"></span>Lab 2 · Part C — a topic that is a table</div>
     <h2 class="r r2">Compaction, hands on.</h2>
-    <p class="lede r r3">Create a compacted topic, write two values for the same key, and read it as current state. This is the mechanism behind "rebuild my cache from the topic".</p>
+    <p class="lede r r3">Create a compacted topic, write several values for the same key, and read it as current state. This is the mechanism behind "rebuild my cache from the topic".</p>
     <div class="body-wrap grid-2">
       <div>
-        <div class="code-cap">Create a compacted topic</div>
-        <pre class="code r r4">bin/kafka-topics.sh --bootstrap-server <span class="v">$BS</span> \
-  --command-config client.properties --create \
-  --topic <span class="s">customers</span> --partitions <span class="v">3</span> \
-  --config <span class="k">cleanup.policy</span>=<span class="v">compact</span> \
-  --config <span class="k">min.cleanable.dirty.ratio</span>=<span class="v">0.01</span> \
-  --config <span class="k">segment.ms</span>=<span class="v">10000</span>   <span class="c"># compact quickly, for the demo</span></pre>
-        <div class="code-cap" style="margin-top:14px">Write, overwrite, tombstone</div>
-        <pre class="code r r5">bin/kafka-console-producer.sh --bootstrap-server <span class="v">$BS</span> \
-  --producer.config client.properties --topic <span class="s">customers</span> \
+        <div class="callout warn r r4" style="margin-top:0"><span class="ic">✕</span><div><b>Express brokers don't allow editing <code>segment.ms</code>.</b> Compaction here triggers only once a partition hits 256&nbsp;MB — our handful of test messages will never reach that. <b>You will not see compaction actually happen on screen.</b> Explain the expected result out loud instead (see the callout below) — this is the plan, not a mistake.</div></div>
+        <div class="code-cap" style="margin-top:14px"><code>customers</code> already exists (created by <code>bootstrap.sh</code>)</div>
+        <pre class="code r r5">$KAFKA/bin/kafka-console-producer.sh --bootstrap-server <span class="v">$BS</span> \
+  --producer.config <span class="v">$PROPS</span> --topic <span class="s">customers</span> \
   --property <span class="k">parse.key</span>=<span class="v">true</span> --property <span class="k">key.separator</span>=<span class="v">:</span>
 
-<span class="s">cust-1:{"tier":"silver"}</span>
-<span class="s">cust-1:{"tier":"gold"}</span>      <span class="c"># supersedes the previous value</span>
-<span class="s">cust-2:{"tier":"bronze"}</span>
-<span class="s">cust-2:</span>                     <span class="c"># empty value = tombstone = delete</span></pre>
+<span class="s">cust-001:{"name":"Maria","tier":"bronze"}</span>
+<span class="s">cust-001:{"name":"Maria","tier":"silver"}</span>
+<span class="s">cust-001:{"name":"Maria","tier":"gold"}</span>
+<span class="s">cust-002:{"name":"Pedro","tier":"bronze"}</span></pre>
       </div>
       <div>
-        <div class="code-cap">Read it as a table</div>
-        <pre class="code r r5">bin/kafka-console-consumer.sh --bootstrap-server <span class="v">$BS</span> \
-  --consumer.config client.properties --topic <span class="s">customers</span> \
-  --from-beginning --property <span class="k">print.key</span>=<span class="v">true</span> \
-  --group <span class="s">state-rebuild</span></pre>
+        <div class="code-cap">Read it back</div>
+        <pre class="code r r5">$KAFKA/bin/kafka-console-consumer.sh --bootstrap-server <span class="v">$BS</span> \
+  --consumer.config <span class="v">$PROPS</span> --topic <span class="s">customers</span> \
+  --from-beginning --property <span class="k">print.key</span>=<span class="v">true</span></pre>
         <div class="sub am" style="margin-top:14px">Checkpoints</div>
         <ul class="check r r6">
-          <li>Immediately after writing, you see <b>both</b> <code>cust-1</code> values — compaction is asynchronous, not transactional.</li>
-          <li>Wait for a compaction cycle, then re-read with a <b>new group</b>: only <code>tier":"gold"</code> survives.</li>
-          <li><code>cust-2</code> disappears entirely after its tombstone is compacted.</li>
-          <li>Reading from offset 0 reconstructs <b>current state for every key</b> — no database query involved.</li>
+          <li>You see <b>all 4 lines</b>, uncompacted — expected on Express at this volume.</li>
+          <li><b>Say out loud:</b> at 256&nbsp;MB, compaction would leave only 2 lines — <code>cust-001</code> at <code>gold</code> and <code>cust-002</code> at <code>bronze</code>. The intermediate values vanish because compaction keeps the latest value per key.</li>
+          <li>A tombstone (empty value after the colon) marks a key for deletion — same reasoning, not visible here either.</li>
         </ul>
         <div class="callout good r r6" style="margin-top:12px"><span class="ic">✓</span><div><b>Where you'll use this:</b> reference data distribution, feature flags, customer/product master data, and any service that wants a local read-only replica it can rebuild on startup.</div></div>
       </div>
@@ -1198,37 +1147,38 @@ bin/kafka-topics.sh --bootstrap-server <span class="v">$BS</span> \
 
   <!-- 05d · SCHEMA EVOLUTION -->
   <section class="slide dense" id="s5d" data-ch="5">
-    <div class="labtag r r1"><span class="d"></span>Lab 2 · Step 5 — change the contract safely</div>
+    <div class="labtag r r1"><span class="d"></span>Lab 2 · Part D, Level 1 — change the contract safely</div>
     <h2 class="r r2">Evolve the payload<br>without breaking a reader.</h2>
-    <p class="lede r r3">The last exercise, and the one with the longest shadow. Register a schema, produce against it, add an optional field, and prove the old consumer still works — including on old records.</p>
+    <p class="lede r r3">The last exercise, and the one with the longest shadow. Pure AWS CLI against Glue Schema Registry — register v1, add a field safely, then find out which change actually breaks <code>BACKWARD</code> compatibility.</p>
     <div class="body-wrap grid-2">
       <div>
-        <div class="code-cap">Producer/consumer config — AWS Glue Schema Registry</div>
-        <pre class="code r r4"><span class="c"># producer</span>
-<span class="k">value.serializer</span>=<span class="v">com.amazonaws.services.schemaregistry\
-  .serializers.GlueSchemaRegistryKafkaSerializer</span>
-<span class="k">dataFormat</span>=<span class="v">AVRO</span>
-<span class="k">registry.name</span>=<span class="v">workshop-registry</span>
-<span class="k">schemaName</span>=<span class="v">Order</span>
-<span class="k">schemaAutoRegistrationEnabled</span>=<span class="v">true</span>
-<span class="k">compatibility</span>=<span class="v">BACKWARD</span>
+        <div class="code-cap">Create the registry + v1 (orderId, amount)</div>
+        <pre class="code r r4">aws glue create-registry --registry-name <span class="s">pandora-workshop</span>
 
-<span class="c"># consumer</span>
-<span class="k">value.deserializer</span>=<span class="v">com.amazonaws.services.schemaregistry\
-  .deserializers.GlueSchemaRegistryKafkaDeserializer</span></pre>
-        <div class="callout note r r5" style="margin-top:12px"><span class="ic">◆</span><div>Short on time? Do this one as a <b>guided demo</b> rather than per-pair — the concept matters more than the keystrokes, and the Avro tooling setup can eat ten minutes.</div></div>
+aws glue create-schema \
+  --registry-id RegistryName=<span class="s">pandora-workshop</span> \
+  --schema-name <span class="s">order</span> --data-format <span class="v">AVRO</span> \
+  --compatibility <span class="v">BACKWARD</span> \
+  --schema-definition <span class="s">"$(cat schemas/order-v1.avsc)"</span></pre>
+        <div class="code-cap" style="margin-top:14px">v2 — adds <code>channel</code> with a default</div>
+        <pre class="code r r5">aws glue register-schema-version \
+  --schema-id SchemaName=<span class="s">order</span>,RegistryName=<span class="s">pandora-workshop</span> \
+  --schema-definition <span class="s">"$(cat schemas/order-v2.avsc)"</span>
+<span class="c"># → Status: AVAILABLE</span></pre>
       </div>
       <div>
-        <div class="sub">The exercise</div>
+        <div class="sub">Two experiments — guess before you run them</div>
         <ol class="labsteps r r5">
-          <li><b>Produce v1 records</b> (<code>orderId</code>, <code>amount</code>) to a new topic <code>orders-avro</code>. Confirm the schema appears in the registry.</li>
-          <li><b>Start a v1 consumer</b> and leave it running.</li>
-          <li><b>Add a field with a default</b> — <code>channel: string = "unknown"</code> — and produce v2 records. Registration succeeds: it's BACKWARD-compatible.</li>
-          <li><b>Watch the v1 consumer</b> keep working on v2 records; it simply ignores the new field.</li>
-          <li><b>Now try a breaking change</b> — remove <code>amount</code>, or rename it. The registry <b>rejects</b> the registration. That rejection is the feature.</li>
-          <li><b>Start a v2 consumer with <code>--from-beginning</code></b>: old v1 records read back with <code>channel="unknown"</code> from the default.</li>
+          <li><b>v3 — delete <code>amount</code> entirely.</b> Register it.
+            <pre class="code" style="margin-top:7px"><span class="c"># → Status: AVAILABLE — surprising, but correct:</span>
+<span class="c"># BACKWARD means "new schema can read old data".</span>
+<span class="c"># A field the new consumer no longer needs is fine.</span></pre></li>
+          <li><b>v4 — add <code>taxId</code> as required, no default.</b> Register it.
+            <pre class="code" style="margin-top:7px"><span class="c"># → Status: FAILURE — THIS is what actually breaks</span>
+<span class="c"># BACKWARD: old data has no taxId and no fallback.</span></pre></li>
         </ol>
-        <div class="callout good r r6" style="margin-top:12px"><span class="ic">✓</span><div><b>Checkpoint:</b> step 5 failed, and step 6 worked on historical data. That combination is what makes a retained log safe to build a platform on.</div></div>
+        <div class="callout warn r r6" style="margin-top:10px"><span class="ic">✕</span><div><b>Correct the room's intuition here:</b> "deleting = dangerous, adding = safe" is backwards. What matters is whether the <em>new</em> schema can read <em>old</em> data — deleting a field it no longer needs never breaks that; requiring a new field with no default does.</div></div>
+        <div class="callout good r r6" style="margin-top:10px"><span class="ic">✓</span><div><b>Level 2 (producing/consuming real Avro bytes)</b> is a Python client, not CLI — optional, in the Extra lab. Today we stop at Level 1: the registry's accept/reject behaviour.</div></div>
       </div>
     </div>
   </section>
@@ -4974,27 +4924,29 @@ const NOTES={
 
   s3i:{title:"Kafka on AWS",sub:"6 min",points:[
     "Lead with <b>it's open-source Kafka</b> — same protocol, same clients, same configs, no code lock-in. That matters enormously to this audience.",
-    "Three flavours, one sentence each. Serverless for dev/test/spiky and for today's labs; provisioned (with Express brokers) for serious production; self-managed only if they need something AWS doesn't expose.",
+    "Three flavours, one sentence each. Serverless for dev/test/spiky workloads; provisioned with Express brokers (what today's labs run on) for serious production, higher throughput, faster recovery; self-managed only if they need something AWS doesn't expose.",
     "If asked about Serverless quotas, say 'check the current documented limits before committing production' rather than quoting a number — they change.",
     "The ecosystem panel is the time-saver for their pilot: <b>MSK Connect</b> for CDC-based producers, <b>Lambda ESM</b> for a first consumer with no consumer loop, <b>Managed Flink</b> when they need windows or joins. Call these back in Chapter 07.",
     "Security: IAM auth is the native path. Don't deep-dive; just establish that TLS, KMS and private subnets are defaults or one setting away.",
-    "Close by setting up the labs: MSK Serverless + IAM, and every command works unchanged elsewhere — only the client config differs. <b>Then break for 10 minutes.</b>"]},
+    "Close by setting up the labs: <b>MSK Provisioned, Express brokers, IAM auth</b> — that's why topic creation needs an explicit replication factor. Every command works unchanged elsewhere — only the client config differs. <b>Then break for 10 minutes.</b>"]},
 
   ch4:{title:"Chapter 04 — Lab 1",sub:"30 min hands-on",points:[
     "Your job during labs is to float, not to present. Set the goal, start the clock, and circulate.",
-    "Announce the two checkpoints that matter before they start: <b>restart with the same group (nothing arrives)</b> and <b>restart with a new group (everything arrives)</b>. If a pair only does those two, the lab succeeded."]},
+    "Announce the two checkpoints that matter before they start: <b>restart with the same group lab1 (nothing arrives)</b> and <b>restart with a new group (everything arrives)</b>. If a pair only does those two, the lab succeeded."]},
 
   s4a:{title:"Lab 1 setup",sub:"5 min",points:[
     "Timebox ruthlessly: <b>five minutes, then pair up</b>. Nobody debugs a client config for twenty minutes in a three-hour workshop.",
-    "Have the bootstrap string and <code>client.properties</code> pre-shared in chat or on a slide — typing SASL config from a projector is where workshops die.",
-    "The common failure is network, not auth: wrong VPC/subnet, security group not allowing 9098, or the TLS port instead of the IAM port. Check that first, every time.",
+    "The flow is automated: <code>git clone</code> (should already be done in pre-work) → <code>source bootstrap.sh</code> discovers the cluster, writes client-iam.properties, AND creates orders/customers/orders-avro if missing → <code>./check-setup.sh</code> to verify. Nobody should be typing SASL config by hand.",
+    "The common failure is network, not auth: wrong VPC/subnet, security group not allowing 9098, or <code>$BS</code> empty because this SSM tab never ran <code>source bootstrap.sh</code>.",
+    "Remind them: <b>two SSM tabs, each independent</b> — every new tab needs sudo su - ec2-user + source bootstrap.sh again. Ctrl+C does not reset this.",
     "If a pair is fully blocked, put them on a neighbour's screen as navigator — participation beats a working terminal."]},
 
   s4b:{title:"Lab 1 steps",sub:"20 min · circulate",points:[
-    "Set the goal before they type: 'produce keyed records, consume them, then look at your own offsets'.",
-    "Nudge everyone to <b>reuse keys</b> (two <code>cust-1</code> records) — otherwise the key→partition lesson doesn't land.",
-    "Step 5 is the payoff, not step 4. Make sure every pair runs <code>kafka-consumer-groups --describe</code> and reads CURRENT-OFFSET / LOG-END-OFFSET / LAG out loud.",
-    "Then push the two closing checkpoints: <b>same group → nothing; new group → everything</b>. Walk around and ask pairs to show you that result.",
+    "Set the goal before they type: 'produce keyed records, consume them, then look at your own offsets'. orders already has 3 partitions — no create step needed.",
+    "Nudge everyone to <b>reuse keys</b> (three <code>cust-001</code> records) — otherwise the key→partition lesson doesn't land.",
+    "The group is named <code>lab1</code> throughout — keep that consistent so the checkpoints below make sense.",
+    "Step 5 is the payoff, not step 4. Make sure every pair runs <code>kafka-consumer-groups --describe --group lab1</code> and reads CURRENT-OFFSET / LOG-END-OFFSET / LAG out loud.",
+    "Then push the two closing checkpoints: <b>same group lab1 → nothing; new group → everything</b>. Walk around and ask pairs to show you that result.",
     "Common stumbles: forgetting <code>--from-beginning</code> on the first run and concluding nothing was produced; forgetting <code>parse.key=true</code> so every record has a null key and spreads randomly.",
     "Call a 5-minute warning so everyone reaches step 5."]},
 
@@ -5005,35 +4957,30 @@ const NOTES={
     "<b>Then take the 10-minute break here</b> if you haven't already, and tell them to leave terminals open."]},
 
   ch5:{title:"Chapter 05 — Lab 2",sub:"35 min hands-on",points:[
-    "Lab 2 is the differentiator lab: replay, independent groups, scaling ceiling, compaction, schema evolution.",
-    "<b>You will not finish all five steps with every pair.</b> Prioritise steps 1–3 for everyone; run step 5 as a guided demo if time is short. Say this up front so nobody feels behind."]},
+    "Lab 2 is the differentiator lab: independent groups, replay, compaction, schema evolution via Glue CLI.",
+    "No topic creation needed here — bootstrap.sh already created orders/customers/orders-avro. Jump straight to the exercises.",
+    "<b>Time budget: Parts A/B ~12 min, Part C ~8 min (explained, not shown), Part D Level 1 ~12 min.</b> Level 2 (Python Avro client) is optional/Extra lab, not for today."]},
 
-  s5a:{title:"Lab 2 · groups & replay",sub:"8 min",points:[
+  s5a:{title:"Lab 2 · groups & replay",sub:"12 min",points:[
     "Click the replay button on the diagram first so they know what they're aiming for.",
-    "Emphasise the operational reality: the group must be <b>stopped</b> to reset its offsets. People hit this immediately.",
-    "Show them <code>--dry-run</code> before <code>--execute</code> — it's the habit you want them to take to production.",
+    "Part A: two groups (lab2a, lab2b) reading the same topic completely independently — the thing a classic queue can't do for free.",
+    "Part B: emphasise the operational reality: the group must be <b>stopped</b> to reset its offsets. People hit this immediately.",
     "<code>--to-datetime</code> is the one that wins arguments with the business: 'reprocess from 09:00 yesterday' is a command, not a project.",
-    "The checkpoint to verify at each table: <b>analytics re-reads everything while lab-consumer stays at lag 0</b>."]},
+    "The checkpoint to verify at each table: <b>lab2a re-reads everything while lab2b stays at lag 0</b>."]},
 
-  s5b:{title:"Lab 2 · scale & rebalance",sub:"9 min · swap drivers here",points:[
-    "Tell them the fourth consumer is <em>supposed</em> to get nothing. The point is to see the ceiling in a lab rather than in an incident.",
-    "Have them run <code>--describe</code> while all four are up and read the CONSUMER-ID column — seeing ownership per partition makes the model concrete.",
-    "Then <code>--alter --partitions 6</code> and watch the idle consumer pick up work. Note partitions only go up, never down.",
-    "<b>The real lesson is the last checkpoint:</b> produce more <code>cust-1</code> records after repartitioning and watch them possibly land elsewhere. hash(key) mod 6 ≠ hash(key) mod 3. Per-key ordering breaks across the change.",
-    "Takeaway to state plainly: <b>size partitions for peak with headroom; it is not an elastic knob.</b>"]},
+  s5c:{title:"Lab 2 · compaction",sub:"8 min · explained, not shown",points:[
+    "Set the expectation BEFORE running anything: on these Express brokers, segment.ms can't be edited, and compaction only triggers at 256MB. We will not see compaction happen on screen today — say this up front so it doesn't read as a failure.",
+    "Produce the 4 lines into customers, consume them back — all 4 appear, uncompacted. That's expected.",
+    "Then <b>narrate</b> the counterfactual: at real volume, re-reading would show only 2 lines — cust-001 at gold, cust-002 at bronze. The intermediate values vanish because compaction keeps the latest value per key.",
+    "The reframe to land: <b>reading from offset 0 reconstructs current state for every key</b> — no database query. Name where they'd use it: reference data, feature flags, master data, rebuildable local caches."]},
 
-  s5c:{title:"Lab 2 · compaction",sub:"8 min",points:[
-    "The demo-friendly configs matter: <code>segment.ms=10000</code> and a low <code>min.cleanable.dirty.ratio</code>, or compaction won't visibly happen inside the lab.",
-    "Set expectations: compaction is <b>asynchronous</b>. Right after writing they'll see both values — that's correct, not a bug.",
-    "The tombstone (empty value) is the delete mechanism. Make sure at least a few pairs try it.",
-    "The reframe to land: <b>reading from offset 0 reconstructs current state for every key</b> — no database query. Then name where they'd use it: reference data, feature flags, master data, rebuildable local caches.",
-    "If you're behind schedule, this is the step to demo from the front rather than have everyone do."]},
-
-  s5d:{title:"Lab 2 · schema evolution",sub:"8 min · demo if short on time",points:[
-    "Be honest about the Avro/registry setup cost. If you're past the 2h20 mark, <b>run this as a guided demo</b> — the concept carries the value, not the keystrokes.",
-    "The sequence that teaches: v1 producer → running v1 consumer → add an optional field with a default → v1 consumer keeps working.",
-    "Then the <b>deliberate failure</b>: remove or rename a required field and watch the registry reject it. That rejection is the product.",
-    "Finish with the replay dimension: a v2 consumer reading from offset 0 gets <code>channel=\"unknown\"</code> on old records from the default. <b>That combination — rejected breakage plus safe replay — is what makes a log safe as a platform.</b>"]},
+  s5d:{title:"Lab 2 · schema evolution (Glue CLI, Level 1)",sub:"12 min",points:[
+    "This is pure AWS CLI today — no Python, no Avro client. Level 2 (real serialized Avro messages) is the optional Extra lab, not for the main session.",
+    "Create the registry + v1 (orderId, amount), then register v2 (adds channel with a default) — accepted, BACKWARD-compatible.",
+    "<b>Before running v3 and v4, ask the room to guess the result of each — this is the pedagogical payoff.</b>",
+    "v3 deletes amount entirely → Status: AVAILABLE. Counterintuitive but correct: BACKWARD only requires the new schema to read old data, and a field it no longer needs is harmless.",
+    "v4 adds taxId as required with no default → Status: FAILURE. THIS is the one that actually breaks BACKWARD — old data has no taxId and no fallback value.",
+    "Land the correction explicitly: <b>'delete = dangerous, add = safe' is backwards.</b> What matters is whether the new schema can read old data."]},
 
   s5e:{title:"Lab 2 debrief",sub:"4 min",points:[
     "Four capability cards, then immediately the honest list of what got harder. Both halves, every time.",
