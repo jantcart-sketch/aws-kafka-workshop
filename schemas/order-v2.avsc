@@ -1,0 +1,24 @@
+{
+  "type": "record",
+  "name": "Order",
+  "namespace": "com.pandora.workshop.kafka",
+  "doc": "Order v2 — adds 'channel' with a default. BACKWARD-compatible change: a v1 consumer can read v2 records by ignoring the new field; a v2 consumer can read v1 records because 'channel' has a default.",
+  "fields": [
+    {
+      "name": "orderId",
+      "type": "string",
+      "doc": "Unique order identifier (UUID)."
+    },
+    {
+      "name": "amount",
+      "type": "double",
+      "doc": "Total order amount."
+    },
+    {
+      "name": "channel",
+      "type": "string",
+      "default": "unknown",
+      "doc": "Sales channel (web, app, store). New field in v2, with a default for BACKWARD compatibility."
+    }
+  ]
+}
