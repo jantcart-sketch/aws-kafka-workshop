@@ -1,0 +1,18 @@
+{
+  "type": "record",
+  "name": "Order",
+  "namespace": "com.pandora.workshop.kafka",
+  "doc": "Order v1 — initial schema used in Lab 2 (schema evolution with Glue Schema Registry).",
+  "fields": [
+    {
+      "name": "orderId",
+      "type": "string",
+      "doc": "Unique order identifier (UUID)."
+    },
+    {
+      "name": "amount",
+      "type": "double",
+      "doc": "Total order amount."
+    }
+  ]
+}
