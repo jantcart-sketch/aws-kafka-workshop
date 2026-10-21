@@ -1498,12 +1498,12 @@ bin/kafka-topics.sh --bootstrap-server <span class="v">$BS</span> \
     <p class="ch-q r r3">The question this chapter answers: <b>why did the industry converge on an append-only log as the backbone of data infrastructure</b>, instead of a queue, a database, or an API mesh?</p>
     <div class="ch-list">
       <div class="ch-item r r4"><b>1 · The log</b>Immutable, ordered, replayable — the primitive everything else is built from.</div>
-      <div class="ch-item r r4"><b>2 · The N×M problem</b>Point-to-point integration collapses under its own weight.</div>
+      <div class="ch-item r r4"><b>2 · The N×M problem</b>Same exercise as Ch 02.2 — not repeated here, see that slide.</div>
       <div class="ch-item r r5"><b>3 · Queue vs log vs DB</b>What Kafka is, and what it deliberately is not.</div>
       <div class="ch-item r r5"><b>4 · What replay buys you</b>Backfills, new consumers, time travel, incident recovery.</div>
       <div class="ch-item r r6"><b>5 · When not to use it</b>The honest limits — request/reply, tiny scale, per-message TTL.</div>
     </div>
-    <div class="ch-budget r r6">Time budget <b>≈20 min</b> · 5 slides · demo: live tail</div>
+    <div class="ch-budget r r6">Time budget <b>≈20 min</b> · 4 slides · demo: live tail</div>
   </section>
 
   <!-- 01a · WHAT IS KAFKA (original) -->
@@ -1532,52 +1532,20 @@ bin/kafka-topics.sh --bootstrap-server <span class="v">$BS</span> \
     </div>
   </section>
 
-  <!-- 01b · THE N×M PROBLEM -->
-  <section class="slide dense" id="dds1b" data-ch="8">
-    <div class="deepdive-badge">📚 DEEP DIVE — optional, after the live session</div>
-    <div class="eyebrow r r1">Why It Exists <span class="num">/ 08.2</span></div>
-    <h2 class="r r2">The problem: <span class="k-red">N×M</span> integrations.</h2>
-    <p class="lede r r3">Every new system that needs data adds another bespoke pipeline. With 6 sources and 6 sinks you don't have 12 connections to maintain — you have <b>36</b>, each with its own format, retry logic, backpressure story and 3am pager.</p>
-    <div class="body-wrap grid-52">
-      <div class="stage mid r r4" id="stage-nxm2">
-        <span class="stage-label"><span class="dot"></span>before → after · click to toggle</span>
-        <svg viewBox="0 0 640 420" id="nxmsvg2"></svg>
-        <button class="stage-btn" id="nxmBtn2">Introduce the log ▸</button>
-      </div>
-      <div>
-        <div class="sub am">What actually changes</div>
-        <div class="card am r r5">
-          <h4>From O(N×M) to O(N+M)</h4>
-          <p>Each producer learns <b>one</b> protocol. Each consumer learns <b>one</b> protocol. Adding the seventh consumer costs one subscription, not six integrations.</p>
-        </div>
-        <div class="card cy r r6" style="margin-top:12px">
-          <h4>The real win is <span class="k-cyan">decoupling in time</span></h4>
-          <p>The producer doesn't need the consumer to exist yet. A team can start consuming a stream that has been running for six months — and read all of it. That is impossible with a queue that deletes on delivery, or an RPC call that requires both sides to be up.</p>
-        </div>
-        <div class="callout note r r6" style="margin-top:12px">
-          <span class="ic">◆</span>
-          <div>This is LinkedIn's original 2010 problem statement: dozens of data systems, each pair wired by hand. Kafka was written to be the <b>single central nervous system</b> — and the design follows from that goal, not from "we needed a faster queue".</div>
-        </div>
-      </div>
-    </div>
-  </section>
-
   <!-- 01c · QUEUE vs LOG vs DATABASE -->
   <section class="slide dense" id="dds1c" data-ch="8">
     <div class="deepdive-badge">📚 DEEP DIVE — optional, after the live session</div>
     <div class="eyebrow r r1">Mental Model <span class="num">/ 08.3</span></div>
     <h2 class="r r2">Queue vs log vs database.</h2>
     <p class="lede r r3">Most Kafka misuse comes from carrying over instincts from one of the other two. Kafka borrows the <b>pub/sub interface</b> of a broker and the <b>storage model</b> of a database — and refuses several features of both.</p>
+    <p class="lede r r3" style="margin-top:-6px"><span class="k-muted" style="font-size:12.5px">(Ch 02.3 already compared queue vs. Kafka in detail — this table adds the third axis: the database.)</span></p>
     <div class="body-wrap tbl-wrap r r4">
       <table class="tbl">
         <thead><tr><th></th><th>Classic queue (SQS, Rabbit)</th><th class="k-cyan">Kafka (log)</th><th>Database</th></tr></thead>
         <tbody>
           <tr><td><b>Read model</b></td><td>Broker pushes; message is <b>consumed and removed</b></td><td>Consumer <b>pulls</b> at an offset; data stays</td><td>Query by key/predicate, any order</td></tr>
-          <tr><td><b>After reading</b></td><td>Gone — ack deletes it</td><td>Still there until retention expires</td><td>Still there until deleted</td></tr>
           <tr><td><b>Second consumer</b></td><td>Competes for messages, or you fan out to another queue</td><td>Independent group, same data, own offsets</td><td>Another query</td></tr>
-          <tr><td><b>Ordering</b></td><td>Best-effort; strict order usually means 1 consumer</td><td>Strict <b>per partition</b>, with N-way parallelism</td><td>None inherent</td></tr>
           <tr><td><b>Per-message ops</b></td><td>Delete/retry/delay a <b>single</b> message</td><td class="k-red">No. The log is immutable, offsets move forward</td><td>Update/delete any row</td></tr>
-          <tr><td><b>Scale unit</b></td><td>Queue depth (aim: empty)</td><td>Partition count (depth is normal, not an alarm)</td><td>Index + shard</td></tr>
           <tr><td><b>Random access</b></td><td>No</td><td>By <b>offset</b> or <b>timestamp</b> only — never by content</td><td>Yes, that's the point</td></tr>
         </tbody>
       </table>
@@ -1614,15 +1582,7 @@ bin/kafka-topics.sh --bootstrap-server <span class="v">$BS</span> \
           <div class="metric"><div class="big am">O(1)</div><div class="cap">write and read cost, independent of how much data is retained</div></div>
           <div class="metric"><div class="big vi">~7 T</div><div class="cap">messages/day at LinkedIn scale across ~100 clusters</div></div>
         </div>
-        <div class="card r r5">
-          <div class="kicker">Why it isn't slow</div>
-          <ul>
-            <li><b>Append-only writes</b> are sequential; no b-tree maintenance, no random IO, no write amplification from index updates.</li>
-            <li><b>The OS page cache is the cache.</b> Kafka has no separate in-process record cache — recent data is served from RAM the kernel already holds.</li>
-            <li><b>Zero-copy reads:</b> <code>sendfile()</code> pushes bytes from page cache to socket without entering the JVM heap.</li>
-            <li><b>Batching + compression happen once,</b> at the producer, and the batch stays compressed through the broker to the consumer.</li>
-          </ul>
-        </div>
+        <div class="callout note r r5"><span class="ic">◆</span><div><b>Why it isn't slow, mechanically:</b> sequential IO, OS page cache, zero-copy <code>sendfile()</code>, and batching all the way through. Full breakdown in Ch 11.5.</div></div>
         <div class="callout amb r r6" style="margin-top:12px"><span class="ic">▲</span><div>Retention is <b>per topic</b>: <code>retention.ms</code> (default 7 days) and/or <code>retention.bytes</code>. Retaining a week isn't a hack — it's the intended operating mode. With tiered storage, months.</div></div>
       </div>
     </div>
@@ -1633,14 +1593,10 @@ bin/kafka-topics.sh --bootstrap-server <span class="v">$BS</span> \
     <div class="deepdive-badge">📚 DEEP DIVE — optional, after the live session</div>
     <div class="eyebrow r r1">Credibility Check <span class="num">/ 08.5</span></div>
     <h2 class="r r2">When Kafka is the <span class="k-red">wrong</span> answer.</h2>
-    <p class="lede r r3">A talk that only sells is a bad talk. These are the cases where reaching for Kafka costs you months and buys you nothing.</p>
+    <p class="lede r r3">Ch 06.3 already named four of these (request/reply, tiny scale, millions of topics, ad-hoc querying). Two more worth adding:</p>
     <div class="body-wrap grid-3">
-      <div class="card rd r r4"><h4><span class="n">01</span>Request/reply</h4><p>You need a response to <em>this</em> call, in-band, in 5&nbsp;ms. Kafka can do request/reply with a correlation id and a reply topic, but you have re-invented RPC with worse tooling. Use gRPC/HTTP.</p></div>
-      <div class="card rd r r4"><h4><span class="n">02</span>Per-message scheduling</h4><p>"Deliver this in 4 hours", "retry only this one", "delete message X". The log has no per-record addressing. Use a queue with visibility timeouts, or a scheduler + topic.</p></div>
-      <div class="card rd r r5"><h4><span class="n">03</span>Tiny scale, tiny team</h4><p>Three services and 50 events/second? A managed queue or Postgres <code>LISTEN/NOTIFY</code> will cost you a day, not a quarter. Kafka's floor is operational, not throughput.</p></div>
-      <div class="card rd r r5"><h4><span class="n">04</span>Millions of topics</h4><p>Per-tenant or per-user topics don't scale — each partition is files, memory, and replication overhead. Model tenancy as <b>keys inside</b> a topic, not topics.</p></div>
-      <div class="card rd r r6"><h4><span class="n">05</span>Ad-hoc querying</h4><p>There is no <code>WHERE</code>. If the access pattern is "find the record for user 42", you need a store; Kafka feeds it, it doesn't replace it.</p></div>
-      <div class="card rd r r6"><h4><span class="n">06</span>Very large payloads</h4><p>Default max record ~1&nbsp;MB. Video/blobs belong in object storage; put the <b>pointer</b> and metadata on the topic (claim-check pattern).</p></div>
+      <div class="card rd r r4"><h4><span class="n">01</span>Per-message scheduling</h4><p>"Deliver this in 4 hours", "retry only this one", "delete message X". The log has no per-record addressing. Use a queue with visibility timeouts, or a scheduler + topic.</p></div>
+      <div class="card rd r r4"><h4><span class="n">02</span>Very large payloads</h4><p>Default max record ~1&nbsp;MB. Video/blobs belong in object storage; put the <b>pointer</b> and metadata on the topic (claim-check pattern).</p></div>
     </div>
     <div class="callout note r r6" style="margin-top:18px"><span class="ic">◆</span><div><b>The honest framing for the rest of the talk:</b> Kafka trades away per-message flexibility and random access to buy ordering, durable replay, and linear scale. Everything in the next eight chapters is a consequence of that one trade.</div></div>
   </section>
@@ -1860,7 +1816,7 @@ bootstrap.servers=<span class="s">localhost:9092</span>   <span class="c">✓ co
       </div>
       <div>
         <div class="sub am">The cost line nobody forecasts</div>
-        <div class="card am r r5"><h4>Cross-AZ replication traffic</h4><p>RF=3 across three AZs means every byte written crosses an AZ boundary <b>twice</b>. In cloud environments that inter-AZ transfer is often billed — and can rival the compute bill for a high-throughput cluster.</p><p>Mitigations: <b>rack-aware consumers</b> (<code>client.rack</code> + rack-aware replica selection) so reads stay in-AZ; compression at the producer; and honest retention.</p></div>
+        <div class="card am r r5"><h4>Cross-AZ replication traffic</h4><p>RF=3 across three AZs means every byte written crosses an AZ boundary <b>twice</b> — often the largest line item on the bill. Mitigations (rack-aware consumers, DR tradeoffs) in Ch 14.5.</p></div>
         <div class="card cy r r6" style="margin-top:12px"><h4>Tiered storage changes the shape</h4><p>With remote storage (KIP-405), brokers keep a hot local window and offload older segments to object storage. Capacity stops driving broker count, and cluster rebalances get dramatically faster because there's less local data to move.</p></div>
         <div class="callout note r r6" style="margin-top:12px"><span class="ic">◆</span><div><b>Benchmark before you believe anyone.</b> <code>kafka-producer-perf-test</code> and <code>kafka-consumer-perf-test</code> ship in the box — run them with <em>your</em> record size, RF and acks setting. Record size alone can move throughput by 10×.</div></div>
       </div>
@@ -1987,7 +1943,7 @@ per-consumer  = <span class="v">~15 MB/s</span>   <span class="c">→ 40   ← b
     <div class="deepdive-badge">📚 DEEP DIVE — optional, after the live session</div>
     <div class="eyebrow r r1">Cleanup Policy <span class="num">/ 10.4</span></div>
     <h2 class="r r2">Delete vs compact:<br>two different topics.</h2>
-    <p class="lede r r3"><code>cleanup.policy=delete</code> keeps a <b>window of history</b>. <code>cleanup.policy=compact</code> keeps the <b>latest value per key</b>, forever. The second one turns a topic into a durable, replayable table — and it's how Kafka Streams state, Connect offsets and <code>__consumer_offsets</code> all work.</p>
+    <p class="lede r r3"><span class="k-muted" style="font-size:12.5px">(Ch 03.7 introduced delete vs compact.)</span> Compaction turns a topic into a durable, replayable table — and it's how Kafka Streams state, Connect offsets and <code>__consumer_offsets</code> all work.</p>
     <div class="body-wrap grid-52">
       <div class="stage mid r r4" id="stage-compact2">
         <span class="stage-label"><span class="dot"></span>log compaction — same log, keys deduped</span>
@@ -2030,12 +1986,8 @@ per-consumer  = <span class="v">~15 MB/s</span>   <span class="c">→ 40   ← b
 kafka-topics.sh --alter --topic orders \
   --partitions <span class="v">24</span> --bootstrap-server ...
 
-<span class="c"># 12 → 24 partitions means:</span>
-<span class="c">#  hash(k) % 12  ≠  hash(k) % 24</span>
-<span class="c">#  → future records for key K may land elsewhere</span>
-<span class="c">#  → K's history is split across two partitions</span>
-<span class="c">#  → per-key ordering is BROKEN across the change</span>
-
+<span class="c"># reminder from Ch 03.2: hash(k) % N changes with N,</span>
+<span class="c"># so this reshuffles future records for every key.</span>
 <span class="c"># existing data is never moved or rehashed.</span>
 <span class="c"># --partitions 6 (fewer)? rejected outright.</span></pre>
         <div class="callout warn r r6" style="margin-top:12px"><span class="ic">✕</span><div>If per-key ordering is load-bearing (state machines, CDC, aggregates), <b>do not</b> add partitions to a live topic. Create <code>orders.v2</code> with the new count, dual-write or replay, and cut consumers over deliberately.</div></div>
@@ -2532,12 +2484,7 @@ partition = <span class="f">abs</span>(<span class="f">hash</span>(groupId)) % 5
     <div class="split">
       <div>
         <h2 class="r r2">Consumers &amp;<br>consumer groups.</h2>
-        <p class="lede r r3">Consumers in the same <b>group</b> share the work: each partition is assigned to exactly <b>one</b> consumer in the group. Add consumers → Kafka <b>rebalances</b>.</p>
-        <ul class="feat">
-          <li class="r r4">Partitions ≥ consumers, or some sit <b>idle</b>.</li>
-          <li class="r r5">Different groups read the <b>same data independently</b>.</li>
-          <li class="r r6">Each group commits its <b>own offsets</b>.</li>
-        </ul>
+        <p class="lede r r3"><span class="k-muted" style="font-size:12.5px">(Ch 03.4 covered partition-per-consumer assignment and rebalancing — quick recap, then straight to internals.)</span> Add consumers → Kafka <b>rebalances</b>.</p>
         <div class="callout amb r r6" style="margin-top:20px"><span class="ic">▲</span><div>The scaling ceiling is the partition count, and it applies <b>per group</b>. 12 partitions means at most 12 useful consumers in that group — the 13th pod is pure cost.</div></div>
       </div>
       <div class="stage r r4" id="stage-cons">
@@ -2767,12 +2714,7 @@ orders  2          904488   904533    <span class="v">45</span></pre>
     <div class="split">
       <div>
         <h2 class="r r2">Replication<br>&amp; the ISR.</h2>
-        <p class="lede r r3">Each partition has one <b class="k-amber">leader</b> and N <b class="k-cyan">followers</b> on other brokers. Followers that keep up form the <b>In-Sync Replica</b> set (ISR).</p>
-        <ul class="feat">
-          <li class="r r4">All reads &amp; writes go through the <b>leader</b>.</li>
-          <li class="r r5">If the leader dies, an <b>ISR follower is promoted</b>.</li>
-          <li class="r r6"><b>replication.factor=3</b> survives 2 broker losses.</li>
-        </ul>
+        <p class="lede r r3"><span class="k-muted" style="font-size:12.5px">(Ch 03.5 covered leader/follower/ISR basics and failover — quick recap below, then the mechanics Ch 03 didn't show.)</span></p>
         <div class="callout note r r6" style="margin-top:20px"><span class="ic">◆</span><div>Replication is <b>per partition</b>, not per broker. Every broker is a leader for some partitions and a follower for others — which is how load stays even and why "the leader" is always a partition-scoped statement.</div></div>
       </div>
       <div class="stage r r4" id="stage-repl2">
@@ -2848,7 +2790,7 @@ orders  2          904488   904533    <span class="v">45</span></pre>
             </tbody>
           </table>
         </div>
-        <div class="callout good r r6" style="margin-top:12px"><span class="ic">✓</span><div>If you keep only four alerts: <code>UnderMinIsrPartitionCount &gt; 0</code>, <code>OfflinePartitionsCount &gt; 0</code>, <code>ActiveControllerCount != 1</code>, and consumer-lag-rising. Everything else is a dashboard.</div></div>
+        <div class="callout good r r6" style="margin-top:12px"><span class="ic">✓</span><div>Full alert list (the minimum set to page on) is in Ch 16.3 — this table is the "why" behind two of them: <code>UnderMinIsrPartitionCount</code> and <code>OfflinePartitionsCount</code>.</div></div>
       </div>
     </div>
   </section>
@@ -2963,25 +2905,8 @@ orders  2          904488   904533    <span class="v">45</span></pre>
     <div class="deepdive-badge">📚 DEEP DIVE — optional, after the live session</div>
     <div class="eyebrow r r1">Delivery Semantics <span class="num">/ 15.1</span></div>
     <h2 class="r r2" style="margin-bottom:10px">The guarantees you can dial in.</h2>
-    <p class="lede r r3" style="max-width:70ch">Kafka lets you trade latency for safety. Three delivery semantics, chosen by config — plus idempotent &amp; transactional producers for exactly-once.</p>
-    <div class="split" style="grid-template-columns:1fr 1fr 1fr;margin-top:36px;align-items:stretch">
-      <div class="stage r r4" style="min-height:auto;padding:26px 24px 24px">
-        <div class="k-red" style="font-family:var(--disp);font-weight:800;font-size:26px">At most once</div>
-        <p class="lede" style="margin-top:12px">Commit offset <b>before</b> processing. Fast, but a crash can <b>lose</b> messages. Rarely what you want.</p>
-        <p class="lede" style="margin-top:10px;font-size:12px">Producer side: <code>acks=0</code>, no retries.</p>
-      </div>
-      <div class="stage r r5" style="min-height:auto;padding:26px 24px 24px">
-        <div class="k-amber" style="font-family:var(--disp);font-weight:800;font-size:26px">At least once</div>
-        <p class="lede" style="margin-top:12px">Commit <b>after</b> processing. Never loses data, but a retry can <b>duplicate</b>. The common default.</p>
-        <p class="lede" style="margin-top:10px;font-size:12px">Producer: <code>acks=all</code> + retries. Consumer: commit after work. <b>Make handlers idempotent.</b></p>
-      </div>
-      <div class="stage r r6" style="min-height:auto;padding:26px 24px 24px">
-        <div class="k-cyan" style="font-family:var(--disp);font-weight:800;font-size:26px">Exactly once</div>
-        <p class="lede" style="margin-top:12px">Idempotent producer + <b>transactions</b> across topics. No loss, no dupes — with a throughput cost.</p>
-        <p class="lede" style="margin-top:10px;font-size:12px">Only end-to-end when <b>both</b> ends participate: <code>read_committed</code>, or an idempotent sink.</p>
-      </div>
-    </div>
-    <div class="callout amb r r6" style="margin-top:26px"><span class="ic">▲</span><div><b>90% of production systems should choose at-least-once with idempotent handlers.</b> It's simpler, faster, and survives every failure mode. Reach for transactions when the processing is Kafka→Kafka and the arithmetic must be exact.</div></div>
+    <p class="lede r r3" style="max-width:70ch">Ch 03.6 already covered the three semantics (at-most / at-least / exactly-once) and why at-least-once + idempotent handlers is the default choice. This chapter's new material is next: how <b>ordering</b> and <b>offset commits</b> actually interact with those guarantees under rebalances and retries.</p>
+    <div class="callout amb r r6" style="margin-top:20px"><span class="ic">▲</span><div><b>One line worth repeating:</b> idempotent producer + transactions give exactly-once only <b>Kafka-to-Kafka</b>. The moment a consumer writes to an external system, correctness is back to your own idempotency.</div></div>
   </section>
 
   <!-- 08b · ORDERING -->
@@ -3559,7 +3484,7 @@ paintClock();
 /* ---- 02.2 · N×M spaghetti → log  (reused from kafka-deck.html) ---- */
 (function(){
   const svg=document.getElementById('nxmsvg');
-  const btn=document.getElementById('nxmBtn2');
+  const btn=document.getElementById('nxmBtn');
   let mode=0, timer=null;
   const srcs=['app','web','mobile','db-cdc','sensors','billing'];
   const sinks=['warehouse','search','cache','ml','alerts','audit'];
@@ -4001,64 +3926,6 @@ paintClock();
   }
   scenes['dds1a']=()=>{clearInterval(timer);feed.innerHTML='';for(let i=0;i<9;i++)line();timer=setInterval(line,900);};
   onStop('dds1a',()=>clearInterval(timer));
-})();
-
-/* ---- 08.2 · N×M spaghetti → log ---- */
-(function(){
-  const svg=document.getElementById('nxmsvg2');
-  const btn=document.getElementById('nxmBtn2');
-  let mode=0, timer=null;
-  const srcs=['app','web','mobile','db-cdc','sensors','billing'];
-  const sinks=['warehouse','search','cache','ml','alerts','audit'];
-  function build(){
-    clearInterval(timer);
-    svg.innerHTML='';
-    const ly=(i,n)=>50+i*(300/(n-1));
-    const S=srcs.map((s,i)=>({x:90,y:ly(i,srcs.length),t:s}));
-    const T=sinks.map((s,i)=>({x:550,y:ly(i,sinks.length),t:s}));
-    if(mode===0){
-      el('text',{x:320,y:24,'text-anchor':'middle',class:'lbl-sm',fill:'var(--red)'},svg).textContent='POINT-TO-POINT · 6 × 6 = 36 pipelines';
-      S.forEach(s=>T.forEach(t=>{
-        el('line',{x1:s.x+42,y1:s.y,x2:t.x-42,y2:t.y,stroke:'var(--red)','stroke-width':.6,opacity:.28},svg);
-      }));
-      el('text',{x:320,y:390,'text-anchor':'middle',class:'lbl-sm',fill:'var(--red)'},svg).textContent='every line: a format, a retry policy, an owner, a pager';
-    }else{
-      el('text',{x:320,y:24,'text-anchor':'middle',class:'lbl-sm',fill:'var(--cyan)'},svg).textContent='LOG IN THE MIDDLE · 6 + 6 = 12 connections';
-      el('rect',{x:262,y:120,width:116,height:170,rx:14,fill:'rgba(255,179,71,.07)',stroke:'var(--amber)','stroke-width':1.5},svg);
-      el('text',{x:320,y:150,'text-anchor':'middle',class:'lbl',fill:'var(--amber)'},svg).textContent='KAFKA';
-      el('text',{x:320,y:168,'text-anchor':'middle',class:'lbl-sm'},svg).textContent='the log';
-      for(let i=0;i<7;i++) el('rect',{x:280,y:190+i*13,width:80,height:9,rx:2,fill:'var(--cyan-dim)',opacity:.35+i*0.07},svg);
-      const paths=[];
-      S.forEach(s=>{const d=`M${s.x+42},${s.y} C ${s.x+130},${s.y} 220,205 262,205`;
-        el('path',{d,fill:'none',stroke:'var(--cyan)','stroke-width':1.1,opacity:.4},svg);paths.push({d,c:'var(--cyan)'});});
-      T.forEach(t=>{const d=`M378,205 C 430,205 ${t.x-130},${t.y} ${t.x-42},${t.y}`;
-        el('path',{d,fill:'none',stroke:'var(--violet)','stroke-width':1.1,opacity:.4},svg);paths.push({d,c:'var(--violet)'});});
-      el('text',{x:320,y:390,'text-anchor':'middle',class:'lbl-sm',fill:'var(--cyan)'},svg).textContent='one contract in, one contract out — add a consumer for free';
-      timer=setInterval(()=>{
-        const p=paths[Math.floor(Math.random()*paths.length)];
-        const pk=el('circle',{r:4,fill:p.c,filter:`drop-shadow(0 0 6px ${p.c})`},svg);
-        const path=el('path',{d:p.d,fill:'none'},svg);const len=path.getTotalLength();
-        let st=null,dur=900;
-        function step(ts){if(!st)st=ts;const k=Math.min(1,(ts-st)/dur);const pt=path.getPointAtLength(k*len);
-          pk.setAttribute('cx',pt.x);pk.setAttribute('cy',pt.y);
-          if(k<1)requestAnimationFrame(step);else{pk.remove();path.remove();}}
-        requestAnimationFrame(step);
-      },160);
-    }
-    // nodes on top
-    S.forEach(s=>{
-      el('rect',{x:s.x-42,y:s.y-15,width:84,height:30,rx:8,class:'node-box',stroke:'var(--cyan)'},svg);
-      el('text',{x:s.x,y:s.y+4,'text-anchor':'middle',class:'lbl-sm',fill:'var(--cyan)'},svg).textContent=s.t;
-    });
-    T.forEach(t=>{
-      el('rect',{x:t.x-42,y:t.y-15,width:84,height:30,rx:8,class:'node-box',stroke:'var(--violet)'},svg);
-      el('text',{x:t.x,y:t.y+4,'text-anchor':'middle',class:'lbl-sm',fill:'var(--violet)'},svg).textContent=t.t;
-    });
-    btn.textContent = mode===0 ? 'Introduce the log ▸' : '◂ Back to spaghetti';
-  }
-  btn.onclick=()=>{mode=1-mode;build();};
-  scenes['dds1b']=()=>{mode=0;build();};
-  onStop('dds1b',()=>clearInterval(timer));
 })();
 
 /* ---- 09.1 · architecture ---- */
@@ -5234,14 +5101,6 @@ const NOTES={
     "Naming matters: events are named in the past tense (<code>order.placed</code>, not <code>placeOrder</code>). A log of facts can be replayed safely; a log of commands cannot.",
     "Contrast with the mental model most people arrive with: <b>reading does not consume</b>. Say it twice. It is the single most common misconception in the room.",
     "Hook forward: 'everything else in this talk is a consequence of choosing an append-only log.'"]},
-
-  dds1b:{title:"The N×M problem",sub:"4–5 min · the strongest slide for buy-in",points:[
-    "Let the spaghetti diagram sit in silence for a few seconds before you say anything. People recognise their own architecture in it.",
-    "Then hit the button. 36 → 12. Make the arithmetic explicit: <b>O(N×M) becomes O(N+M)</b>.",
-    "The deeper point is not connection count, it is <b>decoupling in time</b>: the consumer does not need to exist when the data is produced. Give a concrete example — the fraud team that shipped six months after checkout and still got all the history.",
-    "History: this is LinkedIn's 2010 problem. Kafka was built as a central nervous system, not as a faster queue. That origin explains why it stores data instead of deleting it.",
-    "Anti-pattern to name here so it lands early: a 'Kafka' that is really 36 point-to-point topics with one producer and one consumer each is still spaghetti — you just moved the wiring."],
-   ask:"How many bespoke data pipelines does your team own? Does anyone know the actual number?"},
 
   dds1c:{title:"Queue vs log vs database",sub:"4–5 min · correct the instincts",points:[
     "Work the table row by row; the rows that generate discussion are <b>after reading</b> and <b>per-message ops</b>.",
