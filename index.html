@@ -449,8 +449,8 @@
           <thead><tr><th>#</th><th>Block</th><th>Mode</th><th>Time</th></tr></thead>
           <tbody>
             <tr><td><b>01</b></td><td>Welcome &amp; current landscape</td><td>Discussion</td><td class="k-cyan">10 min</td></tr>
-            <tr><td><b>02</b></td><td>Messaging vs event streaming</td><td>Theory + discussion</td><td class="k-cyan">34 min</td></tr>
-            <tr><td><b>03</b></td><td>Kafka fundamentals</td><td>Theory + demos</td><td class="k-cyan">36 min</td></tr>
+            <tr><td><b>02</b></td><td>Messaging vs event streaming</td><td>Theory + discussion</td><td class="k-cyan">35 min</td></tr>
+            <tr><td><b>03</b></td><td>Kafka fundamentals</td><td>Theory + demos</td><td class="k-cyan">35 min</td></tr>
             <tr><td colspan="3" class="k-muted"><em>— break —</em></td><td class="k-muted">10 min</td></tr>
             <tr><td><b>04</b></td><td>Lab 1 · your first event stream</td><td class="k-amber"><b>Hands-on</b></td><td class="k-amber">30 min</td></tr>
             <tr><td><b>05</b></td><td>Lab 2 · replay, groups, evolution</td><td class="k-amber"><b>Hands-on</b></td><td class="k-amber">35 min</td></tr>
@@ -463,8 +463,8 @@
         <div class="sub am">House rules</div>
         <div class="card am r r5"><ul>
           <li><b>Interrupt.</b> "We do this today with X" is the most valuable sentence in the room — say it the moment it occurs to you.</li>
-          <li><b>Labs are pairs.</b> One driver, one navigator, swap at the halfway checkpoint.</li>
-          <li><b>Nobody gets left behind.</b> Each lab has checkpoints; if your cluster misbehaves, pair up and keep moving.</li>
+          <li><b>Everyone has their own account.</b> Your own isolated AWS account, your own MSK cluster, your own workshop host — nothing shared, nothing to coordinate with a neighbour.</li>
+          <li><b>Nobody gets left behind.</b> Each lab has checkpoints; if your own cluster misbehaves, raise a hand and we'll debug it together.</li>
           <li><b>Capture as you go.</b> Keep a running note of candidate use cases — Chapter 06 is where they get scored.</li>
         </ul></div>
         <div class="callout good r r6" style="margin-top:12px"><span class="ic">✓</span><div><b>Setup check now</b> — before the theory. Everyone should have an AWS account/role, a terminal with the Kafka CLI reachable, and the cluster endpoint. Red flags in the next 2 minutes, please.</div></div>
@@ -518,7 +518,7 @@
       <div class="ch-item r r5"><b>4 · What it buys &amp; costs you</b>Fan-out, replay, and the honest trade-offs.</div>
       <div class="ch-item r r6"><b>5 · Discussion</b>Which of your flows are secretly logs?</div>
     </div>
-    <div class="ch-budget r r6">Budget <b>34 min</b></div>
+    <div class="ch-budget r r6">Budget <b>35 min</b></div>
   </section>
 
   <!-- 02a · QUEUE VS LOG (interactive) -->
@@ -672,7 +672,7 @@
       <div class="ch-item r r6"><b>5 · Replication &amp; delivery</b>Surviving a broker; at-least-once vs exactly-once.</div>
       <div class="ch-item r r6"><b>6 · Retention, schemas, AWS</b>Compaction, contracts, and MSK.</div>
     </div>
-    <div class="ch-budget r r6">Budget <b>36 min</b></div>
+    <div class="ch-budget r r6">Budget <b>35 min</b></div>
   </section>
 
   <!-- 03a · TRANSLATION TABLE -->
@@ -970,14 +970,14 @@
       <div class="ch-item r r5"><b>4 · Consume</b>Watch key, partition and offset.</div>
       <div class="ch-item r r6"><b>5 · Inspect</b>Describe the group; read the lag.</div>
     </div>
-    <div class="ch-budget r r6">Budget <b>30 min</b> · pairs, swap at step 4</div>
+    <div class="ch-budget r r6">Budget <b>30 min</b> · own account, own pace</div>
   </section>
 
   <!-- 04a · SETUP -->
   <section class="slide dense" id="s4a" data-ch="4">
     <div class="labtag r r1"><span class="d"></span>Lab 1 · Step 0 — connect</div>
     <h2 class="r r2">Get a terminal talking<br>to the cluster.</h2>
-    <p class="lede r r3">Five minutes. You should have already cloned the repo in pre-work — if not, do it now. If you're blocked after five minutes, raise a hand and pair with a neighbour.</p>
+    <p class="lede r r3">Five minutes. You should have already cloned the repo in pre-work — if not, do it now. If you're blocked after five minutes, raise a hand — everyone has their own account, so this is a genuine blocker worth fixing live.</p>
     <div class="body-wrap grid-2">
       <div>
         <div class="code-cap">If you haven't already (pre-work)</div>
@@ -3130,8 +3130,8 @@ function el(tag,attrs={},parent){const e=document.createElementNS(NS,tag);for(co
 /* ============ CHAPTERS ============ */
 const CHAPTERS=[
   {n:'01',t:'Welcome & landscape',d:'Outcomes, agenda, where you are today',m:'10 min'},
-  {n:'02',t:'Messaging vs streaming',d:'Queue vs log — the one idea that changes everything',m:'34 min'},
-  {n:'03',t:'Kafka fundamentals',d:'Your messaging vocabulary, translated',m:'36 min'},
+  {n:'02',t:'Messaging vs streaming',d:'Queue vs log — the one idea that changes everything',m:'35 min'},
+  {n:'03',t:'Kafka fundamentals',d:'Your messaging vocabulary, translated',m:'35 min'},
   {n:'04',t:'Lab 1 — first stream',d:'Topic, producer, consumer, offsets',m:'30 min'},
   {n:'05',t:'Lab 2 — replay & evolution',d:'Replay, consumer groups, compaction, schemas',m:'35 min'},
   {n:'06',t:'Use case discovery',d:'Score your own use cases against the framework',m:'25 min'},
@@ -4810,8 +4810,8 @@ const NOTES={
 
   s1b:{title:"Agenda & house rules",sub:"3 min",points:[
     "Walk the table quickly — the point is that <b>65 minutes are hands-on</b> and 25 are about their systems. Theory is in service of the labs.",
-    "Pairs for labs, driver/navigator, swap at the halfway checkpoint. Say it now so nobody sets up alone and falls behind.",
-    "<b>Run the setup check here, not at Lab 1.</b> Two minutes of 'does everyone have the endpoint and a working CLI?' saves fifteen minutes later. Identify the broken environments now and pair those people.",
+    "Everyone has their own isolated account/cluster — say this clearly now, so nobody waits for a partner before starting the labs.",
+    "<b>Run the setup check here, not at Lab 1.</b> Two minutes of 'does everyone have the endpoint and a working CLI?' saves fifteen minutes later. If someone's environment is broken, flag it now so you can debug it during the break.",
     "Flag the break after Chapter 03 so people pace their coffee."]},
 
   s1c:{title:"Where you are today",sub:"5 min · harvest, don't solve",points:[
@@ -4821,7 +4821,7 @@ const NOTES={
     "Listen specifically for the right-hand column phrases ('we can't reprocess', 'analytics can't have it'). Those are the sentences you'll reuse in Chapter 02.3."],
    ask:"Name your primary broker, your highest-volume flow, and the integration you'd most like to never touch again."},
 
-  ch2:{title:"Chapter 02 — Messaging vs streaming",sub:"34 min",points:[
+  ch2:{title:"Chapter 02 — Messaging vs streaming",sub:"35 min",points:[
     "The conceptual heart. If they leave understanding only one thing, it should be the retained log. Everything in Chapter 03 is mechanism in service of this."]},
 
   s2a:{title:"Queue vs log",sub:"6 min · the key slide",points:[
@@ -4861,7 +4861,7 @@ const NOTES={
     "Capture everything onto the board. This is the second and larger harvest for Chapter 06."],
    ask:"Which flow did you just realise is a log being emulated with queues, files or polling?"},
 
-  ch3:{title:"Chapter 03 — Fundamentals",sub:"36 min",points:[
+  ch3:{title:"Chapter 03 — Fundamentals",sub:"35 min",points:[
     "Depth target: enough to <b>reason about a design and run the labs</b>, not enough to operate a cluster. Watch the clock — this chapter is the one that overruns.",
     "If you're behind, compress 03.6 and 03.7 and keep 03.2 (partitions) and 03.4 (groups) at full length. Those two are prerequisites for the labs."]},
 
@@ -4935,18 +4935,18 @@ const NOTES={
     "Announce the two checkpoints that matter before they start: <b>restart with the same group lab1 (nothing arrives)</b> and <b>restart with a new group (everything arrives)</b>. If a pair only does those two, the lab succeeded."]},
 
   s4a:{title:"Lab 1 setup",sub:"5 min",points:[
-    "Timebox ruthlessly: <b>five minutes, then pair up</b>. Nobody debugs a client config for twenty minutes in a three-hour workshop.",
+    "Timebox ruthlessly: <b>five minutes</b>. Nobody debugs a client config for twenty minutes in a three-hour workshop.",
     "The flow is automated: <code>git clone</code> (should already be done in pre-work) → <code>source bootstrap.sh</code> discovers the cluster, writes client-iam.properties, AND creates orders/customers/orders-avro if missing → <code>./check-setup.sh</code> to verify. Nobody should be typing SASL config by hand.",
     "The common failure is network, not auth: wrong VPC/subnet, security group not allowing 9098, or <code>$BS</code> empty because this SSM tab never ran <code>source bootstrap.sh</code>.",
     "Remind them: <b>two SSM tabs, each independent</b> — every new tab needs sudo su - ec2-user + source bootstrap.sh again. Ctrl+C does not reset this.",
-    "If a pair is fully blocked, put them on a neighbour's screen as navigator — participation beats a working terminal."]},
+    "Everyone has their own account, so if someone is stuck it's a genuine blocker, not a pairing issue — go to them directly and debug on their screen."]},
 
   s4b:{title:"Lab 1 steps",sub:"20 min · circulate",points:[
     "Set the goal before they type: 'produce keyed records, consume them, then look at your own offsets'. orders already has 3 partitions — no create step needed.",
     "Nudge everyone to <b>reuse keys</b> (three <code>cust-001</code> records) — otherwise the key→partition lesson doesn't land.",
     "The group is named <code>lab1</code> throughout — keep that consistent so the checkpoints below make sense.",
-    "Step 5 is the payoff, not step 4. Make sure every pair runs <code>kafka-consumer-groups --describe --group lab1</code> and reads CURRENT-OFFSET / LOG-END-OFFSET / LAG out loud.",
-    "Then push the two closing checkpoints: <b>same group lab1 → nothing; new group → everything</b>. Walk around and ask pairs to show you that result.",
+    "Step 5 is the payoff, not step 4. Make sure everyone runs <code>kafka-consumer-groups --describe --group lab1</code> and reads CURRENT-OFFSET / LOG-END-OFFSET / LAG out loud.",
+    "Then push the two closing checkpoints: <b>same group lab1 → nothing; new group → everything</b>. Walk around and ask people to show you that result on their own screen.",
     "Common stumbles: forgetting <code>--from-beginning</code> on the first run and concluding nothing was produced; forgetting <code>parse.key=true</code> so every record has a null key and spreads randomly.",
     "Call a 5-minute warning so everyone reaches step 5."]},
 
