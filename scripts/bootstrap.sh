@@ -130,5 +130,13 @@ else
   echo "    WARNING: $TOPICS_SH not found/executable, skipped topic creation" >&2
 fi
 
+# Export the two shorthand variables every lab doc and the attendee guide
+# use (KAFKA + PROPS), so attendees can copy-paste lab commands verbatim
+# instead of typing the full paths every time.
+export KAFKA="$KAFKA_HOME"
+export PROPS="$CLIENT_PROPERTIES"
+echo "==> \$KAFKA exported: $KAFKA"
+echo "==> \$PROPS exported: $PROPS"
+
 echo "==> Done. Test with:"
-echo "    $KAFKA_HOME/bin/kafka-topics.sh --bootstrap-server \$BS --command-config $CLIENT_PROPERTIES --list"
+echo "    \$KAFKA/bin/kafka-topics.sh --bootstrap-server \$BS --command-config \$PROPS --list"
